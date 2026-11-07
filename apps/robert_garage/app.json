@@ -1,0 +1,101 @@
+{
+  "id": "robert_garage",
+  "title": "Robert Garage",
+  "description": "Personal M340i garage: manual odometer, maintenance reminders, fuel and cost journal in THB. Prototype.",
+  "version": "0.1.0",
+  "vendor": "tichagonmail-ux",
+  "loggingId": "ORGA",
+  "iconGlyph": "wrench",
+  "signals": {},
+  "screens": [
+    {
+      "name": "MAIN",
+      "kind": "canvas",
+      "title": "Robert Garage",
+      "buttons": [
+        [
+          "BTN_PAGE",
+          "Page"
+        ],
+        [
+          "BTN_ITEM",
+          "Item"
+        ],
+        [
+          "BTN_FIELD",
+          "Field"
+        ],
+        [
+          "BTN_MINUS",
+          "Minus"
+        ],
+        [
+          "BTN_PLUS",
+          "Plus"
+        ],
+        [
+          "BTN_STEP",
+          "Step"
+        ],
+        [
+          "BTN_SAVE",
+          "Save"
+        ],
+        [
+          "BTN_UNDO",
+          "Undo last"
+        ],
+        [
+          "BTN_SETTINGS",
+          "Settings"
+        ]
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "key": "theme",
+      "label": "Colour theme",
+      "type": "choice",
+      "default": "m_tricolour",
+      "options": [
+        [
+          "m_tricolour",
+          "M Tricolour"
+        ]
+      ]
+    },
+    {
+      "key": "layout",
+      "label": "Screen layout",
+      "type": "choice",
+      "default": "standard",
+      "options": [
+        [
+          "standard",
+          "Standard with controls"
+        ],
+        [
+          "full",
+          "Full screen"
+        ]
+      ]
+    },
+    {
+      "key": "renderer",
+      "label": "Renderer",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "GPU"
+        ],
+        [
+          "software",
+          "Software"
+        ]
+      ]
+    }
+  ]
+}
