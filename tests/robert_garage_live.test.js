@@ -1,0 +1,28 @@
+'use strict';
+const assert=require('assert'),fs=require('fs'),os=require('os'),path=require('path');
+const {headUnit}=require('../kit/tools/hu-stub');
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'garage-live-'));
+const stage=path.resolve(__dirname,'../dist/robert_garage');
+const hu=headUnit(stage,{dataDir:dir,fresh:true}), callbacks={}, drawn=[];
+let visibility, closed=0;
+hu.ctx.signals.watch=async(i,inst,h)=>{callbacks[i]=h;return{shutdown:()=>{closed++;}};};
+hu.ctx.ui.onVisible=fn=>{visibility=fn;};
+hu.ctx.ui.image=async()=>{};
+const canvas=hu.ctx.canvas;
+hu.ctx.canvas=(w,h)=>{const cv=canvas(w,h),original=cv.text.bind(cv);cv.text=(s,...args)=>{drawn.push(String(s));return original(s,...args);};return cv;};
+(async()=>{
+ hu.start();await new Promise(r=>setImmediate(r));
+ const cds='de.bmw.infotainment.vehicle.CDS',v2='de.bmw.infotainment.vehicle.Vehicle2';
+ assert.deepStrictEqual(Object.keys(callbacks).sort(),[cds,v2].sort());
+ callbacks[cds].statusEngineSpeed2({actualValueRPMEngineCrankshaft:8000});
+ callbacks[cds].statusEngineTemperature({temperatureEngineDrive:138,temperatureEngineOilDrive:148});
+ callbacks[v2].statusCarSpeed2({speedVehicleCentreOfGravity:6400});
+ drawn.length=0;await hu.loopFn();
+ ['2000','100','90'].forEach(v=>assert(drawn.includes(v),'decoded '+v+' not rendered'));
+ callbacks[cds].statusEngineSpeed2({actualValueRPMEngineCrankshaft:65535});drawn.length=0;await hu.loopFn();assert(!drawn.includes('16384'));
+ const now=Date.now;Date.now=()=>now()+6000;drawn.length=0;await hu.loopFn();Date.now=now;assert(!drawn.includes('100'));assert(drawn.includes('--'));
+ visibility('MAIN',false);await new Promise(r=>setImmediate(r));assert.strictEqual(closed,2);
+ console.log('Garage live: RPM scaling, temperature offsets, speed, invalid/stale values and subscription cleanup passed');
+ fs.rmSync(dir,{recursive:true,force:true});
+ process.exit(0);
+})().catch(e=>{console.error(e);process.exit(1);});

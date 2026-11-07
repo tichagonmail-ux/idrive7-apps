@@ -1,3 +1,11 @@
+## Version 0.2.0
+
+The first page now uses the shared Live Data gauge library: segmented RPM bar, tachometer, speed, oil and coolant temperatures. Its three subscribed fields are read-only; scaling and invalid-value handling reuse Live Data signals.js, copied as vehicle-signals.js. Values older than five seconds display --; there is no synthetic fallback. No diagnostic requests or ECU writes.
+
+The full layout is the default, with the kit's compact 48px toolbar when its compatible renderer is running. Existing layout preferences reset once to this new default; standard HMI layout remains the fallback. Tabs use the same shared frame as Live Data. Journal labels use pre-shaped Noto Sans Thai phrases; native toolbar and tab labels stay short ASCII for renderer compatibility. Font notices are bundled in NOTICE.
+
+The vehicle drawing remains an illustration, not a photograph of the owner's car.
+
 # Robert Garage 0.1.0
 
 Personal M340i garage log for iDrive 7. Four pages: Garage, Service, Fuel, History.

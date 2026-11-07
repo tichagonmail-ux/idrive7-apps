@@ -1,12 +1,20 @@
 {
   "id": "robert_garage",
   "title": "Robert Garage",
-  "description": "Personal M340i garage: manual odometer, maintenance reminders, fuel and cost journal in THB. Prototype.",
-  "version": "0.1.0",
+  "description": "M340i live RPM and temperature dashboard using Live Data gauges, with a Thai THB maintenance journal.",
+  "version": "0.2.0",
   "vendor": "tichagonmail-ux",
   "loggingId": "ORGA",
   "iconGlyph": "wrench",
-  "signals": {},
+  "signals": {
+    "de.bmw.infotainment.vehicle.CDS": {
+      "statusEngineSpeed2": "rs",
+      "statusEngineTemperature": "rs"
+    },
+    "de.bmw.infotainment.vehicle.Vehicle2": {
+      "statusCarSpeed2": "rs"
+    }
+  },
   "screens": [
     {
       "name": "MAIN",
@@ -27,11 +35,11 @@
         ],
         [
           "BTN_MINUS",
-          "Minus"
+          "-"
         ],
         [
           "BTN_PLUS",
-          "Plus"
+          "+"
         ],
         [
           "BTN_STEP",
@@ -47,7 +55,7 @@
         ],
         [
           "BTN_SETTINGS",
-          "Settings"
+          "Setup"
         ]
       ]
     }
@@ -69,7 +77,7 @@
       "key": "layout",
       "label": "Screen layout",
       "type": "choice",
-      "default": "standard",
+      "default": "full",
       "options": [
         [
           "standard",
@@ -79,7 +87,8 @@
           "full",
           "Full screen"
         ]
-      ]
+      ],
+      "reset": 2
     },
     {
       "key": "renderer",
