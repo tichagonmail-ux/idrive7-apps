@@ -35,7 +35,7 @@ mgu.run({
         let page = 4, item = 0, field = 0, step = 2, confirm = null, note = '', historyPage = 0;
         const draft = { km: book.state.odometer, cost: 0, litres: 0, interval: ITEMS[0].interval };
         const fields = () => page === 1 ? ['km', 'cost', 'interval'] : page === 2 ? ['km', 'cost', 'litres'] : ['km'];
-        if(ctx.onTab)ctx.onTab(i=>{page=[4,0,1,2,3][i]===undefined?4:[4,0,1,2,3][i];field=0;confirm=null;note='';render();});
+        if(ctx.onTab)ctx.onTab(i=>{if(i===5){ui.open('SETTINGS');return;}page=[4,0,1,2,3][i]===undefined?4:[4,0,1,2,3][i];field=0;confirm=null;note='';render();});
         function changed() { confirm = null; note = ''; }
         function action(name, fn) { const run=()=>{try{fn();}catch(e){note=e.message;}return render();}; actions[name]=run;ui.onClick(name,run); }
         action('BTN_PAGE', () => { page = (page + 1) % 5; field = 0; historyPage = 0; changed(); });
@@ -86,7 +86,7 @@ mgu.run({
             const cv = ctx.canvas(W, H).clear('#090f18'), totals = book.summary();
             cv.fillRect(0,0,520,7,'#39a9ed'); cv.fillRect(520,0,520,7,'#2541a1'); cv.fillRect(1040,0,560,7,'#e83951');
             const theme=ctx.theme();
-            G.frame(cv,theme,['Live','Garage','Service','Fuel','History'],[1,2,3,4,0][page],[]);
+            G.frame(cv,theme,['Live','Garage','Service','Fuel','History','Setup'],[1,2,3,4,0][page],ctx.display && !ctx.display.active('MAIN')?[{text:'GPU OFF'}]:[]);
             if(page!==4) text(cv, 'M340i / '+PAGES[page], 40, 76, 25, '#67baff');
             if (page === 4) {
                 const rpm=reading('rpm'),speed=reading('speed'),oil=reading('oil'),coolant=reading('coolant');

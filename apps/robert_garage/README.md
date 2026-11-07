@@ -1,3 +1,9 @@
+## Version 0.2.1
+
+Removed the native bottom button bar entirely. Page navigation and Setup are top tabs, using the same shared frame and renderer routing as Live Data. Edit controls appear only within journal pages and fit on one row. Live view has no edit controls. Full layout and automatic GPU mode reset once on update.
+
+Actual full-screen presentation and tab interaction require the compatible running GPU renderer. GPU OFF indicates the app is using the native image fallback; removing the toolbar does not itself start or repair the renderer. This version is not verified on the physical car.
+
 ## Version 0.2.0
 
 The first page now uses the shared Live Data gauge library: segmented RPM bar, tachometer, speed, oil and coolant temperatures. Its three subscribed fields are read-only; scaling and invalid-value handling reuse Live Data signals.js, copied as vehicle-signals.js. Values older than five seconds display --; there is no synthetic fallback. No diagnostic requests or ECU writes.
