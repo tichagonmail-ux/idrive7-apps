@@ -8,6 +8,14 @@ const path = require('path');
 const zlib = require('zlib');
 
 const DIR = path.join(__dirname, 'fonts');
+let thaiClusters;
+function shape(text) {
+    if (!/[ก-๛]/.test(text)) return text;
+    if (!thaiClusters) {
+        try { thaiClusters = require("./fonts/thai.json").clusters; } catch (e) { thaiClusters = {}; }
+    }
+    return text.replace(/[ก-ฮ][ัิ-ฺ็-๎]*ำ?/g, cluster => thaiClusters[cluster] || cluster);
+}
 const families = Object.create(null);
 
 function family(name) {
@@ -30,6 +38,7 @@ function get(name, size, text) {
     if (text && /[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\uac00-\ud7ff]/.test(text)) name = 'korean';
     else if (text && /[\u3000-\u9fff\uff00-\uffef]/.test(text)) name = 'cjk';
     else if (text && /[\u0400-\u04ff]/.test(text)) name = 'cyrillic';
+    if (text && /[ก-๛\ue000-\uf8ff]/.test(text)) name = 'thai';
     const fam = family(name) || family('label');
     if (!fam) return null;
     let best = null;
@@ -45,4 +54,4 @@ function measure(f, s) {
     return w;
 }
 
-module.exports = { get, measure };
+module.exports = { get, measure, shape };

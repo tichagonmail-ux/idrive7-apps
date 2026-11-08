@@ -84,7 +84,7 @@ const ABSENT = [0x11, 0x12, 0x31];   // NRCs that mean "this unit has no such va
 
 // the baked fonts are ASCII + a few signs: German letters spelled out
 const ascii = (s) => String(s).replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/Ä/g, 'Ae')
-    .replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue').replace(/ß/g, 'ss').replace(/µ/g, 'u').replace(/[^\x20-\x7e°²³±·]/g, '');
+    .replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue').replace(/ß/g, 'ss').replace(/µ/g, 'u').replace(/[^\x20-\x7eก-๛°²³±·]/g, '');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const readJson = (f, dflt) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { return dflt; } };
 const hexs = (b) => Array.prototype.map.call(b, (x) => hex(x)).join(' ');

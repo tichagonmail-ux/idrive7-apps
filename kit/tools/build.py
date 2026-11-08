@@ -405,7 +405,13 @@ def build(app_id, language='en', preview_only=False):
                          'or use --preview-only for an offline preview (no installable package).')
     adir = os.path.join(APPS, app_id)
     spec = json.load(open(os.path.join(adir, 'app.json'), encoding='utf-8'))
+    base_version = spec["version"]
+    use_default = language == "en" and spec.get("defaultLanguage")
+    if use_default:
+        language = spec["defaultLanguage"]
     spec = localize_spec(spec, language)
+    if use_default:
+        spec["version"] = base_version
     spec.setdefault('id', app_id)
     ver = spec['version']
     stage = os.path.join(DIST, app_id)
@@ -485,6 +491,8 @@ def build(app_id, language='en', preview_only=False):
     if language == 'ru':
         shutil.copy(os.path.join(KIT, 'localization', 'fonts', 'cyrillic-ru.json'),
                     os.path.join(src, 'javascript', 'kit', 'fonts', 'cyrillic.json'))
+    if language == 'th':
+        shutil.copy(os.path.join(KIT, 'localization', 'fonts', 'thai.json'), os.path.join(src, 'javascript', 'kit', 'fonts', 'thai.json'))
     if language == 'ko':
         # Korean and Chinese are separate fixed-language packages. Loading both large
         # atlases could fragment the renderer's two 1024x4096 glyph shelves.

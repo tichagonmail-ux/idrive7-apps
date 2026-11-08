@@ -230,7 +230,7 @@ class Recorder {
     /** Text; y is the baseline. Returns the width in logical px (as canvas.js). */
     text(str, x, y, size, c, opts) {
         opts = opts || {};
-        const s = opts.literal ? String(str) : t(str), family = opts.font || 'label';
+        const s = fonts.shape(opts.literal ? String(str) : t(str)), family = opts.font || 'label';
         const f = fonts.get(family, size * this.textScale, s);
         if (!f) return 0;
         const sc = size / f.size, sp = opts.spacing || 0;
@@ -260,7 +260,7 @@ class Recorder {
         return w;
     }
     textWidth(str, size, opts) {
-        const s = opts && opts.literal ? String(str) : t(str), f = fonts.get((opts && opts.font) || 'label', size * this.textScale, s);
+        const s = fonts.shape(opts && opts.literal ? String(str) : t(str)), f = fonts.get((opts && opts.font) || 'label', size * this.textScale, s);
         return f ? fonts.measure(f, s) * (size / f.size) + ((opts && opts.spacing) || 0) * Math.max(0, s.length - 1) : 0;
     }
 
