@@ -149,16 +149,45 @@ const STRIPS = {
     boost: { min: 0, max: 2.5, count: 25, cuts: [1, 1.8], colors: ['#48bcff', '#3669ff', '#ff4155'], marks: [0, 1, 1.8, 2.5] },
     iat: { min: 30, max: 75, count: 18, cuts: [45, 52.5, 60], colors: ['#40d494', '#ffd152', '#ff963c', '#ff4155'], marks: [30, 45, 60, 75] },
 };
-let brandImage;
-function drawBrand(cv, t, center, y) {
-    const id = 340;
+const brandMotion = require('./brand-motion');
+const advanceBrand = brandMotion.motion(), wheelFrames = new Map();
+let brandImage, brandLayer;
+// Native renderers can draw cached rectangle layers even when bitmap uploads are unavailable.
+function photoLayer(w, h, pixels) {
+    return require('./kit/record').makeLayer(w, h, (layer) => {
+        for (let y = 0; y < h; y++) {
+            let x = 0;
+            while (x < w) {
+                const start = x, offset = (y * w + x) * 4;
+                const color = pixels.readUInt32BE(offset);
+                while (++x < w && pixels.readUInt32BE((y * w + x) * 4) === color) {}
+                if (pixels[offset + 3]) layer.fillRect(start, y, x - start, 1,
+                    [pixels[offset], pixels[offset + 1], pixels[offset + 2], pixels[offset + 3]]);
+            }
+        }
+    });
+}
+function drawBrand(cv, t, center, y, slot) {
     if (!brandImage) {
         const asset = require('./kit/pack').open(require('path').join(__dirname, 'branding')).json('car.json');
-        brandImage = require('./kit/record').setImage(id, asset.width, asset.height, Buffer.from(asset.rgba, 'base64'));
+        brandImage = { w: asset.width, h: asset.height, data: Buffer.from(asset.rgba, 'base64') };
+        brandLayer = photoLayer(brandImage.w, brandImage.h, brandImage.data);
     }
     const title = 'Robito Dashboard', size = 30, font = { font: 'bold' };
     const left = center - (brandImage.w + 12 + cv.textWidth(title, size, font)) / 2;
-    cv.image(id, left, y, brandImage.w, brandImage.h);
+    cv.blit(brandLayer, left, y);
+    const now = Date.now(), state = advanceBrand(now, slot.motionSpeed, slot.pedal);
+    if (state.frame) brandMotion.wheels.forEach((wheel, i) => {
+        const key = 341 + state.frame * 2 + i;
+        let patch = wheelFrames.get(key);
+        if (!patch) {
+            patch = brandMotion.wheelPatch(brandImage, wheel, state.frame);
+            patch.layer = photoLayer(patch.w, patch.h, patch.bytes);
+            wheelFrames.set(key, patch);
+        }
+        cv.blit(patch.layer, left + patch.left, y + patch.top);
+    });
+    brandMotion.drawFlames(cv, left, y, state.flame, now);
     cv.text(title, left + brandImage.w + 12, y + brandImage.h / 2 + 10, size, t.text, font);
 }
 const FULL = {
@@ -191,7 +220,7 @@ const FULL = {
             cv.text('km/h', cx, cy + 39, 18, t.dim, { align: 'center' });
             cv.text(rpm === null ? '--' : String(Math.round(rpm)), b.x + b.w - 96, b.y + 80, 72, t.text, { align: 'right', font: 'num' });
             cv.text('RPM', b.x + b.w - 26, b.y + 78, 23, t.dim, { align: 'right' });
-            drawBrand(cv, t, b.x + b.w / 2, b.y + 14);
+            drawBrand(cv, t, b.x + b.w / 2, b.y + 14, s);
             const count = 42;
             for (let i = 0; i < count; i++) {
                 const ratio = i / count, x = left + width * ratio, w = width / count - 3;

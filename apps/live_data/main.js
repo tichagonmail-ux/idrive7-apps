@@ -642,10 +642,11 @@ mgu.run({
             .map((sc) => ({ layout: SCR.layout(sc.layout).id, slots: (Array.isArray(sc.slots) ? sc.slots : []).slice(0, SCR.MAX_SLOTS).map(loadSlot) }))
             .filter(filled).slice(0, SCR.MAX_SCREENS)
             : SCR.DEFAULTS.map(([layout, ids]) => ({ layout, slots: ids.map(sigSlot) }));
-        // Upgrade the original engine dashboard only when its slots still match the preset.
+        // Add IAT beside the three saved gauges, including personalized RPM dashboards.
         const dashboard = screens[0];
         if (dashboard && dashboard.layout === 'bar3' &&
-            dashboard.slots.map(slot => slot && slot.k).join(',') === 'sig:rpm,sig:oil,sig:coolant,sig:boost') {
+            dashboard.slots.length === 4 && dashboard.slots[0] && dashboard.slots[0].k === 'sig:rpm' &&
+            !dashboard.slots.some(slot => slot && (slot.fav.useful === 'Intake air' || slot.fav.key === 'OBD 0F'))) {
             dashboard.layout = 'bar4';
             dashboard.slots.push({ k: '18:useful:Intake air', fav: {
                 addr: 0x12, useful: 'Intake air', name: 'Intake air', u: '°C', c: ['580F', 'OBD 0F']
@@ -681,6 +682,12 @@ mgu.run({
                 s.tachometer = true;
                 const speed = itemNum(item('sig:speed', { sig: 'speed' }));
                 s.speed = speed && speed.n;
+                const fresh = (id) => {
+                    const v = sigDemo() ? sigValue(SIG.ITEMS[id]) : realValue(id, 1800);
+                    return v && !v.raw && !v.bad ? v.n : 0;
+                };
+                s.motionSpeed = fresh('speed');
+                s.pedal = fresh('pedal');
             }
             if (slot.fav.sig === 'tcKm') {
                 const trip = tc.cur || tc.trips[tc.trips.length - 1];
