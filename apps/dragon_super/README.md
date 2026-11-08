@@ -2,7 +2,7 @@
 
 Standalone iDrive 7 MGU app using cluster-render. Based on EVAHUD by DukeAPenguin, Bimmer-Lab and Robert Nisipeanu. Original copyright and licence notices are retained.
 
-Eco Pro shows base Goku in cyan, Comfort shows Super Saiyan in gold, and Sport shows Super Saiyan God in red. Characters are transparent static images, switched by the car's drive-mode signal. The cluster uses the central map area. Its picture may contend with CarPlay or the stock map.
+Eco Pro shows base Goku in cyan, Comfort shows Super Saiyan in gold, and Sport shows Super Saiyan God in red. Characters are transparent static images, switched by the car's drive-mode signal. The cluster uses a whole-panel layout with a left speed gauge, a right mirrored RPM gauge and Goku between them. The lower BMW status strip stays below the app drawing at y=640. Cluster popups use the upstream yielding mechanism. Positioning and popup behavior on M340i still need real-car verification.
 
 The center-screen menu offers Off, Instrument cluster, Windshield HUD and Cluster + HUD. Vehicle warnings use English text with the original read-only alert rules. Select Off to release both displays.
 

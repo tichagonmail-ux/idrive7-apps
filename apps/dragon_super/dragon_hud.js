@@ -20,9 +20,11 @@ class DragonHud extends Base {
         return super._token(tok);
     }
     _partLook(p, now) {
+        if (p.type === 'bmwgauge') return String(this._raw(p.signal));
         return p.type === 'character' ? this._driveProfile() + ':' + p.w + ':' + p.h : super._partLook(p, now);
     }
     _partPixels(p, look) {
+        if (p.type === 'bmwgauge') return require('./dragon_gauges').paint(p, Number(look), this.theme);
         if (p.type !== 'character') return super._partPixels(p, look);
         const image = data.json('characters/' + this._driveProfile() + '_' + p.w + 'x' + p.h + '.json');
         const bytes = Buffer.from(image.rgba || '', 'base64');
@@ -32,14 +34,15 @@ class DragonHud extends Base {
 }
 class DragonDash extends DragonHud {
     constructor(ctx, primary) {
-        super(ctx, { primary, target: 'map', statusName: 'DRAGON BALL', clientName: ctx.spec.id + '_dash', textRateMs: 250 });
+        super(ctx, { primary, target: 'panel', statusName: 'DRAGON BALL', clientName: ctx.spec.id + '_dash', textRateMs: 250 });
         this.primary = primary;
         this.readings = primary.readings;
     }
     _layoutName() { return ['dash', 'both'].includes(this._screens()) ? this._driveProfile() : 'off'; }
     _layoutFile(name) { return name === 'alert' ? 'db_dash_alert' : 'db_dash_' + name; }
-    _layerFields() { return { contend: 1, guide_hold: 0 }; }
-    _yieldToPopup() { return false; }
+    _layerFields() { return {}; }
+    _popupSlot() { return 0x202; }
+    _yieldToPopup(now) { return Base.prototype._yieldToPopup.call(this, now); }
     _setupVehicleData() { this.car = this.view.primary.car; this.score = this.view.primary.score; }
     _startDme() {}
     _startReads() {}
