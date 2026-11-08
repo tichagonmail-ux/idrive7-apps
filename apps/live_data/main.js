@@ -486,7 +486,7 @@ mgu.run({
         const tc = new TRIPS.Trips(readJson(TRIPS_FILE, null));
         let tcSaved = tc.ver, tcSavedAt = 0, tcDrawn = -1, tcErrs = 0;
         const tripsOn = () => settings.get('trips') !== false;
-        const currency = () => settings.get('currency') || 'EUR';
+        const currency = () => translate(settings.get('currency') || 'EUR');
         /** a car signal as the car sent it (never the demo's), null when none came (or it is older than maxAge) */
         function realValue(id, maxAge) {
             const it = SIG.ITEMS[id];
@@ -518,11 +518,11 @@ mgu.run({
         const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const pad2 = (n) => (n < 10 ? '0' : '') + n;
         const clock = (ms) => { const d = new Date(ms); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); };
-        const day = (ms) => { const d = new Date(ms); return d.getDate() + ' ' + MON[d.getMonth()]; };
+        const day = (ms) => { const d = new Date(ms); return d.getDate() + ' ' + translate(MON[d.getMonth()]); };
         const dur = (ms) => Math.floor(ms / 3600000) + ':' + pad2(Math.floor(ms / 60000) % 60);
-        const tripLine = (tr) => tr.km.toFixed(1) + ' km, ' + tr.l.toFixed(2) + ' l' + (TRIPS.per100(tr.km, tr.l) !== null ? ' (' + TRIPS.per100(tr.km, tr.l).toFixed(1) + ' l/100 km)' : '')
+        const tripLine = (tr) => tr.km.toFixed(1) + ' km, ' + tr.l.toFixed(2) + ' ' + translate('l') + (TRIPS.per100(tr.km, tr.l) !== null ? ' (' + TRIPS.per100(tr.km, tr.l).toFixed(1) + ' l/100 km)' : '')
             + ', ' + dur(tr.driveMs) + ' h driving, ' + dur(tr.idleMs) + ' h standing, fuel from ' + (tr.src || 'nothing') + (tr.noFuelMs > 60000 ? ' (none for ' + dur(tr.noFuelMs) + ' h)' : '')
-            + (tr.odo0 !== null ? ', odometer ' + tr.odo0 + '-' + tr.odo1 : '') + (tr.tank0 !== null ? ', tank ' + tr.tank0 + '-' + tr.tank1 + ' l' : '');
+            + (tr.odo0 !== null ? ', odometer ' + tr.odo0 + '-' + tr.odo1 : '') + (tr.tank0 !== null ? ', tank ' + tr.tank0 + '-' + tr.tank1 + ' ' + translate('l') : '');
         function tripTick() {
             if (!tripsOn()) return;
             sigStart();
@@ -1242,30 +1242,30 @@ mgu.run({
 
         /** Trips: page 1 this trip (or the last) and the last 5, page 2 the totals and the fuel price */
         const f1 = (x) => (x === null || x === undefined ? '--' : x.toFixed(1)), f2 = (x) => (x === null || x === undefined ? '--' : x.toFixed(2));
-        function titleButtons(cv, t, title, list) {
+        function titleButtons(cv, t, panelY, title, list) {
             let bx = 42 + cv.textWidth(title, 26, { font: 'bold' }) + 28;
-            list.forEach((b) => { bx += G.button(cv, t, bx, 62, 0, 38, b.label, b.run, b) + 12; });
+            list.forEach((b) => { bx += G.button(cv, t, bx, panelY + 10, 0, 38, b.label, b.run, b) + 12; });
         }
         function drawTrips(cv, t, pg) {
             const now = Date.now(), cur = tc.cur, last = tc.trips[tc.trips.length - 1], tr = cur || last, cu = currency();
             if (pg.p === 1) { drawTotals(cv, t, now, cu); return; }
             const title = cur ? 'This trip  ·  since ' + clock(cur.start) : last ? 'Last trip  ·  ' + day(last.start) + ', ' + clock(last.start) + ' - ' + clock(last.end) : 'Trip computer';
             G.panel(cv, t, 24, 52, 1552, 196, title);
-            titleButtons(cv, t, title, [{ label: 'Totals', run: () => turnPage(1), key: 'totals' }]);
+            titleButtons(cv, t, 52, title, [{ label: 'Totals', run: () => turnPage(1), key: 'totals' }]);
             if (!tr) cv.text(tripsOn() ? 'The first trip starts with the engine: every drive is counted, also while this screen is closed' : 'The trip computer is off (Settings)', 800, 170, 26, t.dim, { align: 'center' });
             else {
                 const avg = TRIPS.per100(tr.km, tr.l), cost = tc.cost(tr), time = tr.driveMs + tr.idleMs;
                 [
                     { label: 'Distance', value: tr.km, unit: 'km', decimals: 1 },
-                    { label: 'Fuel used', value: tr.l, unit: 'l', decimals: 2 },
+                    { label: 'Fuel used', value: tr.l, unit: translate('l'), decimals: 2 },
                     { label: 'Consumption', value: avg, unit: 'l/100 km', decimals: 1 },
                     { label: 'Cost', value: cost, unit: cost === null ? '' : cu, decimals: 2 },
                     { label: 'Time', text: dur(time), unit: 'h' },
                     { label: 'Average speed', value: time > 60000 ? tr.km / (time / 3600000) : null, unit: 'km/h', decimals: 0 },
                 ].forEach((c, i) => G.readout(cv, t, 48 + i * 254, 108, Object.assign({ size: 54, labelSize: 18 }, c)));
-                const notes = ['standing ' + f2(tr.lIdle) + ' l', 'top speed ' + Math.round(tr.vmax) + ' km/h'];
+                const notes = ['standing ' + f2(tr.lIdle) + ' ' + translate('l'), 'top speed ' + Math.round(tr.vmax) + ' km/h'];
                 if (tr.odo0 !== null) notes.push('odometer ' + tr.odo0 + ' - ' + tr.odo1 + ' km');
-                if (tr.tank0 !== null) notes.push('tank ' + tr.tank0 + ' - ' + tr.tank1 + ' l');
+                if (tr.tank0 !== null) notes.push('tank ' + tr.tank0 + ' - ' + tr.tank1 + ' ' + translate('l'));
                 if (details()) {
                     const src = cur ? Object.keys(cur.src) : (tr.src || '').split('+').filter(Boolean);
                     notes.push(src.length ? 'fuel from the ' + src.map((x) => (x === 'signal' ? 'car signal' : x)).join(' and ') : 'no fuel figure yet');
@@ -1279,18 +1279,18 @@ mgu.run({
                 { label: 'Top speed', w: 180, align: 'right' }, { label: 'Tank', w: 184, align: 'right' }];
             const rows = tc.trips.slice().reverse().map((x) => {
                 const c = tc.cost(x);
-                return [day(x.start) + ', ' + clock(x.start), dur(x.driveMs + x.idleMs) + ' h', f1(x.km) + ' km', f2(x.l) + ' l', f1(TRIPS.per100(x.km, x.l)),
-                    c === null ? '--' : f2(c) + ' ' + cu, Math.round(x.vmax) + ' km/h', x.tank0 !== null ? x.tank0 + ' - ' + x.tank1 + ' l' : '--'];
+                return [day(x.start) + ', ' + clock(x.start), dur(x.driveMs + x.idleMs) + ' h', f1(x.km) + ' km', f2(x.l) + ' ' + translate('l'), f1(TRIPS.per100(x.km, x.l)),
+                    c === null ? '--' : f2(c) + ' ' + cu, Math.round(x.vmax) + ' km/h', x.tank0 !== null ? x.tank0 + ' - ' + x.tank1 + ' ' + translate('l') : '--'];
             });
             G.table(cv, t, 48, 316, 1504, cols, rows, { rowH: 32, size: 22, empty: 'No finished trip yet' });
         }
         function drawTotals(cv, t, now, cu) {
             G.panel(cv, t, 24, 52, 1552, 300, 'Totals');
-            titleButtons(cv, t, 'Totals', [{ label: 'Last trips', run: () => turnPage(-1), key: 'trips' }]);
+            titleButtons(cv, t, 52, 'Totals', [{ label: 'Last trips', run: () => turnPage(-1), key: 'trips' }]);
             const cur = tc.cur, row = (name, x) => {
                 if (!x || !x.n) return [name, '0', '--', '--', '--', '--'];
                 const avg = TRIPS.per100(x.km, x.l);
-                return [name, String(x.n), f1(x.km) + ' km', f2(x.l) + ' l', avg === null ? '--' : f1(avg), x.cost === null ? '--' : f2(x.cost) + ' ' + cu];
+                return [name, String(x.n), f1(x.km) + ' km', f2(x.l) + ' ' + translate('l'), avg === null ? '--' : f1(avg), x.cost === null ? '--' : f2(x.cost) + ' ' + cu];
             };
             const rows = [
                 row('This trip', cur ? { n: 1, km: cur.km, l: cur.l, cost: tc.cost(cur) } : null),
@@ -1303,7 +1303,7 @@ mgu.run({
             G.table(cv, t, 48, 108, 1504, [{ label: '', w: 470 }, { label: 'Trips', w: 130, align: 'right' }, { label: 'Distance', w: 220, align: 'right' },
                 { label: 'Fuel', w: 200, align: 'right' }, { label: 'l/100 km', w: 200, align: 'right' }, { label: 'Cost', w: 284, align: 'right' }], rows, { rowH: 36, size: 24 });
             G.panel(cv, t, 24, 364, 1552, 148, 'Fuel price');
-            titleButtons(cv, t, 'Fuel price', [{ label: 'Change', run: openPrice, key: 'price' }]);
+            titleButtons(cv, t, 364, 'Fuel price', [{ label: 'Change', run: openPrice, key: 'price' }]);
             G.readout(cv, t, 48, 414, { text: tc.price ? tc.price.toFixed(2) : 'not set', unit: tc.price ? cu + ' a litre' : '', size: 56 });
             const tx = 560;
             cv.text((cv.own ? 'Change it with the knob or the buttons.' : 'The Fuel price button, then the knob.') + ' This trip, and trips that had no price, follow it; the others keep theirs.', tx, 426, 20, t.dim);

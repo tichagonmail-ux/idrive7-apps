@@ -49,7 +49,7 @@
   "Fuel: from the car's own fuel signal": "ปริมาณน้ำมันจากสัญญาณของรถ",
   "Fuel: from the engine unit until the car's fuel signal has learned its scaling": "ใช้ข้อมูลน้ำมันจากกล่องเครื่องยนต์ระหว่างปรับเทียบสัญญาณ",
   "Currency": "สกุลเงิน",
-  "THB": "THB",
+  "THB": "บาท",
   "New screen": "หน้าใหม่",
   "Car signals": "สัญญาณจากรถ",
   "Engine speed": "รอบเครื่องยนต์",
@@ -168,5 +168,18 @@
   "Gauges 3": "มาตรวัด 3",
   "Gauges 4": "มาตรวัด 4",
   "Gauges 5": "มาตรวัด 5",
-  "Gauges 6": "มาตรวัด 6"
+  "Gauges 6": "มาตรวัด 6",
+  "Jan": "ม.ค.",
+  "Feb": "ก.พ.",
+  "Mar": "มี.ค.",
+  "Apr": "เม.ย.",
+  "May": "พ.ค.",
+  "Jun": "มิ.ย.",
+  "Jul": "ก.ค.",
+  "Aug": "ส.ค.",
+  "Sep": "ก.ย.",
+  "Oct": "ต.ค.",
+  "Nov": "พ.ย.",
+  "Dec": "ธ.ค.",
+  "l": "ลิตร"
 }
