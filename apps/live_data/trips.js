@@ -27,10 +27,11 @@ const isNum = (x) => typeof x === 'number' && isFinite(x);
 const num = (x) => (isNum(x) ? x : null);
 const round = (x, d) => Math.round(x * Math.pow(10, d)) / Math.pow(10, d);
 /** a total: its trips, km, litres, the cost of the litres that had a price, the litres that had none (lNp) */
-const blank = () => ({ n: 0, km: 0, l: 0, cost: 0, lNp: 0 });
-const SUMS = ['n', 'km', 'l', 'cost', 'lNp'];
+const blank = () => ({ n: 0, km: 0, l: 0, cost: 0, lNp: 0, driveMs: 0, timedTrips: 0 });
+const SUMS = ['n', 'km', 'l', 'cost', 'lNp', 'driveMs', 'timedTrips'];
 const valid = (tr) => tr && isNum(tr.start) && isNum(tr.end) && isNum(tr.km) && isNum(tr.l);
 function add(a, tr) {
+    if (isNum(tr.driveMs)) { a.driveMs += tr.driveMs; a.timedTrips++; }
     a.n++; a.km += tr.km; a.l += tr.l;
     if (tr.price) a.cost += tr.l * tr.price; else a.lNp += tr.l;
 }
@@ -120,10 +121,11 @@ class Trips {
         else Object.keys(this.days).forEach((d) => { if (d >= from) SUMS.forEach((k) => { out[k] += this.days[d][k] || 0; }); });
         const c = this.cur;
         if (c && kind !== 'last' && (kind === 'all' || dayKey(c.start) >= from)) {
+            if (isNum(c.driveMs)) { out.driveMs += c.driveMs; out.timedTrips++; }
             out.n++; out.km += c.km; out.l += c.l; out.lNp += c.l;      // the trip going on: at the price now
         }
         const cost = out.cost + (this.price ? out.lNp * this.price : 0);
-        return { n: out.n, km: out.km, l: out.l, cost: out.lNp > 1e-9 && !this.price ? null : cost };
+        return { driveMs: out.timedTrips === out.n ? out.driveMs : null, n: out.n, km: out.km, l: out.l, cost: out.lNp > 1e-9 && !this.price ? null : cost };
     }
 
     toJSON() {

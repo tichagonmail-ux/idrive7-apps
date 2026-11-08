@@ -1,8 +1,8 @@
 {
   "id": "live_data",
-  "title": "Live Data",
+  "title": "Robito Dashboard",
   "description": "Read-only live values from the car and its control units, a trip computer with fuel cost, and gauge screens of your own, one of them as the home-screen widget",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "defaultLanguage": "th",
   "vendor": "custom",
   "loggingId": "OA9D",
@@ -87,7 +87,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "Live Data",
+      "title": "Robito Dashboard",
       "buttons": [
         [
           "BTN_ACTION",
@@ -110,7 +110,7 @@
   ],
   "startWidget": {
     "comment": "Home-screen widget, as eDrive's: the layout and cell names of BMW's Drive Recorder widget on this firmware; the picture of the chosen screen goes into BackgroundImage1 (384 x 256). The HMI scales it up (about 2x on the G20) and crops it centred (safe: the share it cuts off each edge, measured on the G05 and on a G20 photo), and fades the edges, the top most: the setting widgetFit keeps the gauges further in (screens.js FIT).",
-    "name": "Live Data",
+    "name": "Robito Dashboard",
     "layout": "LT_Table_OnlineApps_DriveRecorderWidget",
     "image": "BackgroundImage1",
     "scale": 2,

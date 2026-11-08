@@ -642,6 +642,15 @@ mgu.run({
             .map((sc) => ({ layout: SCR.layout(sc.layout).id, slots: (Array.isArray(sc.slots) ? sc.slots : []).slice(0, SCR.MAX_SLOTS).map(loadSlot) }))
             .filter(filled).slice(0, SCR.MAX_SCREENS)
             : SCR.DEFAULTS.map(([layout, ids]) => ({ layout, slots: ids.map(sigSlot) }));
+        // Upgrade the original engine dashboard only when its slots still match the preset.
+        const dashboard = screens[0];
+        if (dashboard && dashboard.layout === 'bar3' &&
+            dashboard.slots.map(slot => slot && slot.k).join(',') === 'sig:rpm,sig:oil,sig:coolant,sig:boost') {
+            dashboard.layout = 'bar4';
+            dashboard.slots.push({ k: '18:useful:Intake air', fav: {
+                addr: 0x12, useful: 'Intake air', name: 'Intake air', u: '°C', c: ['580F', 'OBD 0F']
+            } });
+        }
         // the next screen, on the page after the last until a value is chosen for it
         let blank = { layout: SCR.LAYOUTS[0].id, slots: [] }, scrVer = 0;
         function saveScreens() {
@@ -666,6 +675,27 @@ mgu.run({
             const x = item(slot.k, slot.fav), v = itemText(x), num = itemNum(x);
             const useful = x.useful ? x.useful.item.name : slot.fav.useful || null;
             const s = { name: ascii(itemName(x)), text: ascii(v.text), dim: !!v.dim, warn: !!v.warn, n: null, u: ascii(slot.fav.u || ''), d: 0 };
+            if (['boost', 'oil', 'coolant'].includes(slot.fav.sig)) s.strip = slot.fav.sig;
+            if (useful === 'Intake air') s.strip = 'iat';
+            if (slot.fav.sig === 'rpm') {
+                s.tachometer = true;
+                const speed = itemNum(item('sig:speed', { sig: 'speed' }));
+                s.speed = speed && speed.n;
+            }
+            if (slot.fav.sig === 'tcKm') {
+                const trip = tc.cur || tc.trips[tc.trips.length - 1];
+                if (trip && G.isNum(trip.driveMs)) {
+                    const speed = trip.driveMs > 0 ? Math.round(trip.km * 3600000 / trip.driveMs) : '--';
+                    s.tripFooter = 'ขับ ' + dur(trip.driveMs) + ' ชม. · เฉลี่ย ' + speed + ' กม./ชม.';
+                }
+            }
+            if (slot.fav.sig === 'tcAvg') {
+                const trip = tc.cur || tc.trips[tc.trips.length - 1];
+                if (trip && G.isNum(trip.km)) {
+                    const average = trip.km >= 1 && trip.l > 0 ? (trip.km / trip.l).toFixed(1) : '--';
+                    s.tripFooter = 'ทริป ' + trip.km.toFixed(1) + ' กม. · เฉลี่ย ' + average + ' กม./ลิตร';
+                }
+            }
             if (!num) { s.sc = SCR.scale(slot.k, useful, s.u, ranges.get(slot.k) || null); return s; }
             const now = Date.now(), n = num.n;
             let r = ranges.get(slot.k), p = peaks.get(slot.k), tr = traces.get(slot.k);
@@ -1288,23 +1318,23 @@ mgu.run({
             G.panel(cv, t, 24, 52, 1552, 300, 'Totals');
             titleButtons(cv, t, 52, 'Totals', [{ label: 'Last trips', run: () => turnPage(-1), key: 'trips' }]);
             const cur = tc.cur, row = (name, x) => {
-                if (!x || !x.n) return [name, '0', '--', '--', '--', '--'];
+                if (!x || !x.n) return [name, '0', '--', '--', '--', '--', '--', '--'];
                 const avg = TRIPS.per100(x.km, x.l);
-                return [name, String(x.n), f1(x.km) + ' km', f2(x.l) + ' ' + translate('l'), avg === null ? '--' : f1(avg), x.cost === null ? '--' : f2(x.cost) + ' ' + cu];
+                return [name, String(x.n), f1(x.km) + ' km', G.isNum(x.driveMs) ? dur(x.driveMs) : '--', x.driveMs > 0 ? String(Math.round(x.km * 3600000 / x.driveMs)) : '--', f2(x.l) + ' ' + translate('l'), avg === null ? '--' : f1(avg), x.cost === null ? '--' : f2(x.cost) + ' ' + cu];
             };
             const rows = [
-                row('This trip', cur ? { n: 1, km: cur.km, l: cur.l, cost: tc.cost(cur) } : null),
+                row('This trip', cur ? { n: 1, km: cur.km, l: cur.l, driveMs: cur.driveMs, cost: tc.cost(cur) } : null),
                 row('Last ' + TRIPS.KEEP + ' trips', tc.total('last', now)),
                 row('Today', tc.total('today', now)),
                 row('Last 7 days', tc.total('week', now)),
                 row('Last 30 days', tc.total('month', now)),
                 row('All recorded' + (tc.all.since ? ' (since ' + day(tc.all.since) + ' ' + new Date(tc.all.since).getFullYear() + ')' : ''), tc.total('all', now)),
             ];
-            G.table(cv, t, 48, 108, 1504, [{ label: '', w: 470 }, { label: 'Trips', w: 130, align: 'right' }, { label: 'Distance', w: 220, align: 'right' },
-                { label: 'Fuel', w: 200, align: 'right' }, { label: 'l/100 km', w: 200, align: 'right' }, { label: 'Cost', w: 284, align: 'right' }], rows, { rowH: 36, size: 24 });
+            G.table(cv, t, 48, 108, 1504, [{ label: '', w: 350 }, { label: 'Trips', w: 85, align: 'right' }, { label: 'Distance', w: 185, align: 'right' },
+                { label: 'เวลาขับ', w: 140, align: 'right' }, { label: 'เฉลี่ย กม./ชม.', w: 200, align: 'right' }, { label: 'Fuel', w: 150, align: 'right' }, { label: 'l/100 km', w: 200, align: 'right' }, { label: 'Cost', w: 194, align: 'right' }], rows, { rowH: 36, size: 24 });
             G.panel(cv, t, 24, 364, 1552, 148, 'Fuel price');
             titleButtons(cv, t, 364, 'Fuel price', [{ label: 'Change', run: openPrice, key: 'price' }]);
-            G.readout(cv, t, 48, 414, { text: tc.price ? tc.price.toFixed(2) : 'not set', unit: tc.price ? cu + ' a litre' : '', size: 56 });
+            G.readout(cv, t, 48, 414, { text: tc.price ? tc.price.toFixed(2) : 'not set', unit: tc.price ? cu + ' ' + translate('a litre') : '', size: 56 });
             const tx = 560;
             cv.text((cv.own ? 'Change it with the knob or the buttons.' : 'The Fuel price button, then the knob.') + ' This trip, and trips that had no price, follow it; the others keep theirs.', tx, 426, 20, t.dim);
             cv.text(flow.k || sigDemo() ? 'Fuel: from the car\'s own fuel signal' : 'Fuel: from the engine unit until the car\'s fuel signal has learned its scaling', tx, 458, 20, t.dim);
@@ -1407,7 +1437,7 @@ mgu.run({
             const line = (d) => { if (!d) return ''; const v = wvalue(d); return SCR.short(d.name).slice(0, Math.max(4, 21 - v.length)) + ' ' + v; };
             const first = list[0], frac = first && G.isNum(first.n) ? G.clamp((first.n - first.sc.min) / (first.sc.max - first.sc.min), 0, 1) : null;
             const cells = {
-                Title: [on ? 'Live Data' : '', 'Text'],
+                Title: [on ? 'Robito Dashboard' : '', 'Text'],
                 TextRecordings: [on ? (sc ? line(list[0]) : 'Make a screen in the app') : '', 'Text'],
                 TextCam: [on ? line(list[1]) : '', 'Text'],
                 TimeElapsed: [on ? line(list[2]) : '', 'Text'],
@@ -1436,7 +1466,7 @@ mgu.run({
             if (sc) SCR.draw(rec, t, G, SCR.layout(sc.layout), slotsOf(sc).map(slotData), box, true, -1, fit);
             else {
                 const cx = box.x + box.w / 2, cy = box.y + box.h / 2;
-                rec.text('Live Data', cx, cy - 6, 30, t.text, { align: 'center', font: 'bold' });
+                rec.text('Robito Dashboard', cx, cy - 6, 30, t.text, { align: 'center', font: 'bold' });
                 rec.text(fit(rec, screens.length ? 'No Gauges ' + settings.get('widget') + ' (Settings)' : 'Make a screen in the app first', 16, box.w), cx, cy + 24, 16, t.text, { align: 'center' });
             }
             const cv = (wcan[key] || (wcan[key] = new ScaledCanvas(w, h, scale))).clear([0, 0, 0, 0]);

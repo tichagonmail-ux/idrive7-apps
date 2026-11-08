@@ -18,9 +18,10 @@ const LAYOUTS = [
     { id: 'dials3', name: '3 dials', slots: ['dial', 'dial', 'dial'] },
     { id: 'bars2', name: '2 bars', slots: ['bar', 'bar'] },
     { id: 'bar3', name: 'Bar + 3 numbers', slots: ['bar', 'num', 'num', 'num'] },
+    { id: 'bar4', name: 'Bar + 4 gauges', slots: ['bar', 'num', 'num', 'num', 'num'] },
     { id: 'nums4', name: '4 numbers', slots: ['num', 'num', 'num', 'num'] },
 ];
-const MAX_SLOTS = 4, MAX_SCREENS = 6;
+const MAX_SLOTS = 5, MAX_SCREENS = 6;
 const PEAK_MS = 3000;           // the peak mark stays this long after the last new high (OEM "hang")
 const KINDS = { dial: 'dial', bar: 'bar', num: 'number' };
 
@@ -118,6 +119,7 @@ function boxes(L, x, y, w, h, small) {
             return [{ x, y, w: dw, h }].concat(row(1, y, half, rx, rw), row(2, y + half + g, half, rx, rw));
         }
         case 'bars2': return [{ x, y, w, h: half }, { x, y: y + half + g, w, h: half }];
+        case 'bar4': return [{ x, y, w, h: half }].concat(row(4, y + half + g, half, x, w));
         case 'bar3': return [{ x, y, w, h: half }].concat(row(3, y + half + g, half, x, w));
         case 'nums4': return small ? row(2, y, half, x, w).concat(row(2, y + half + g, half, x, w)) : row(4, y, h, x, w);
         default: return row(n, y, h, x, w);          // dials side by side
@@ -140,6 +142,25 @@ function draw(cv, t, G, L, slots, box, small, hl, fit) {
 }
 
 const valueOf = (s) => (isNum(s.n) ? s.n : null);
+const thermalColors = ['#48bcff', '#40d494', '#ff963c', '#ff4155'];
+const STRIPS = {
+    oil: { min: 40, max: 150, count: 22, cuts: [80, 120, 130], colors: thermalColors, marks: [40, 80, 120, 130, 150] },
+    coolant: { min: 40, max: 130, count: 45, cuts: [80, 112, 120], colors: thermalColors, marks: [40, 80, 112, 120, 130] },
+    boost: { min: 0, max: 2.5, count: 25, cuts: [1, 1.8], colors: ['#48bcff', '#3669ff', '#ff4155'], marks: [0, 1, 1.8, 2.5] },
+    iat: { min: 30, max: 75, count: 18, cuts: [45, 52.5, 60], colors: ['#40d494', '#ffd152', '#ff963c', '#ff4155'], marks: [30, 45, 60, 75] },
+};
+let brandImage;
+function drawBrand(cv, t, center, y) {
+    const id = 340;
+    if (!brandImage) {
+        const asset = require('./kit/pack').open(require('path').join(__dirname, 'branding')).json('car.json');
+        brandImage = require('./kit/record').setImage(id, asset.width, asset.height, Buffer.from(asset.rgba, 'base64'));
+    }
+    const title = 'Robito Dashboard', size = 30, font = { font: 'bold' };
+    const left = center - (brandImage.w + 12 + cv.textWidth(title, size, font)) / 2;
+    cv.image(id, left, y, brandImage.w, brandImage.h);
+    cv.text(title, left + brandImage.w + 12, y + brandImage.h / 2 + 10, size, t.text, font);
+}
 const FULL = {
     empty(cv, t, G, s, b, fit, i) {
         G.panel(cv, t, b.x, b.y, b.w, b.h, 'Gauge ' + (i + 1));
@@ -154,6 +175,37 @@ const FULL = {
         });
     },
     bar(cv, t, G, s, b, fit) {
+        if (s.tachometer) {
+            G.panel(cv, t, b.x, b.y, b.w, b.h, s.name);
+            const left = b.x + 213, width = b.w - 250, bottom = b.y + b.h - 45;
+            const rpm = valueOf(s), maximum = s.sc.max;
+            const cx = b.x + 97, cy = b.y + b.h * 0.61;
+            for (let tick = 0; tick <= 33; tick++) {
+                const angle = (135 + 270 * tick / 33) * Math.PI / 180;
+                const dx = Math.cos(angle), dy = Math.sin(angle);
+                const inner = tick % 3 === 0 ? 62 : 68;
+                const active = isNum(s.speed) && s.speed >= tick * 10;
+                cv.line(cx + inner * dx, cy + inner * dy, cx + 77 * dx, cy + 77 * dy, 4, active ? '#48bcff' : t.tick);
+            }
+            cv.text(isNum(s.speed) ? String(Math.round(s.speed)) : '--', cx, cy + 12, 48, t.text, { align: 'center', font: 'num' });
+            cv.text('km/h', cx, cy + 39, 18, t.dim, { align: 'center' });
+            cv.text(rpm === null ? '--' : String(Math.round(rpm)), b.x + b.w - 96, b.y + 80, 72, t.text, { align: 'right', font: 'num' });
+            cv.text('RPM', b.x + b.w - 26, b.y + 78, 23, t.dim, { align: 'right' });
+            drawBrand(cv, t, b.x + b.w / 2, b.y + 14);
+            const count = 42;
+            for (let i = 0; i < count; i++) {
+                const ratio = i / count, x = left + width * ratio, w = width / count - 3;
+                const top = bottom - 25 - 48 * ratio * ratio;
+                const start = ratio * maximum, hot = start >= 5000, blue = start >= 3000;
+                const lit = rpm !== null && start < rpm;
+                const color = hot ? (lit ? '#ff324a' : '#612737') : blue ? (lit ? '#3669ff' : '#202e59') : (lit ? '#48bcff' : '#1c3748');
+                cv.quad([[x + 9, top], [x + w + 9, top], [x + w, bottom], [x, bottom]], color);
+            }
+            for (let tick = 0; tick <= maximum; tick += 1000) {
+                cv.text(String(tick / 1000), left + width * tick / maximum, bottom + 31, 22, tick >= 5000 ? t.crit : t.dim, { align: 'center' });
+            }
+            return;
+        }
         const step = G.niceStep(s.sc.max - s.sc.min, 8);
         G.segBar(cv, t, b.x, b.y, b.w, b.h, {
             label: fit(cv, s.name, 26, b.w - 360, { font: 'bold' }), value: valueOf(s), unit: s.u, decimals: s.d, min: s.sc.min, max: s.sc.max,
@@ -162,15 +214,38 @@ const FULL = {
         });
     },
     num(cv, t, G, s, b, fit) {
+        if (s.strip) {
+            const value = valueOf(s);
+            const { min, max, count, cuts, colors, marks } = STRIPS[s.strip];
+            const boost = s.strip === 'boost';
+            G.panel(cv, t, b.x, b.y, b.w, b.h, s.strip === 'iat' ? 'IAT' : s.name);
+            const x = b.x + 20, width = b.w - 44, y = b.y + b.h - 62;
+            const label = value === null ? '--' : value.toFixed(boost ? 2 : 0);
+            cv.text(label, x, b.y + 106, 62, t.text, { font: 'num' });
+            cv.text(boost ? 'bar' : '°C', x + cv.textWidth(label, 62, { font: 'num' }) + 10, b.y + 104, 24, t.dim);
+            for (let i = 0; i < count; i++) {
+                const level = min + i * (max - min) / count;
+                const color = colors[cuts.filter(cut => level >= cut).length];
+                const left = x + width * i / count, right = left + width / count - 3;
+                const lit = value !== null && value >= level && (value > min || !boost);
+                cv.quad([[left + 4, y], [right + 4, y], [right, y + 20], [left, y + 20]], lit ? color : G.withAlpha(color, 0.26));
+            }
+            for (const mark of marks) {
+                cv.text(String(mark), x + width * (mark - min) / (max - min), y + 46, 18, t.dim, { align: 'center' });
+            }
+            return;
+        }
         const name = fit(cv, s.name, 26, b.w - 36, { font: 'bold' });
         if (isNum(s.n)) {
             const h = (s.hist || []).filter(isNum), lo = h.length ? Math.min.apply(null, h) : null, hi = h.length ? Math.max.apply(null, h) : null;
-            const sub = h.length > 2 && b.h > 150 ? 'last 5 min  ·  min ' + numText({ n: lo, d: s.d }) + '  max ' + numText({ n: hi, d: s.d }) : null;
+            const historySub = h.length > 2 && b.h > 150 ? 'last 5 min  ·  min ' + numText({ n: lo, d: s.d }) + '  max ' + numText({ n: hi, d: s.d }) : null;
+            const sub = s.tripFooter || historySub;
             G.stat(cv, t, b.x, b.y, b.w, b.h, { label: name, value: s.n, unit: s.u, decimals: s.d, history: s.hist, zones: s.sc && s.sc.zones, sub });
             return;
         }
         G.panel(cv, t, b.x, b.y, b.w, b.h, name);
         // a text the value has (gear 'D4') big; what there is instead ('no data', 'calibrating') smaller
+        if (s.tripFooter) cv.text(s.tripFooter, b.x + 18, b.y + b.h - 18, 22, t.dim);
         const size = s.dim || s.warn ? 30 : Math.min(80, b.h * 0.36);
         cv.text(fit(cv, s.text, size, b.w - 36, { font: 'bold' }), b.x + 18, b.y + 52 + Math.min(80, b.h * 0.36) * 0.85, size, s.warn ? t.warn : s.dim ? t.dim : t.text, { font: 'bold' });
     },
