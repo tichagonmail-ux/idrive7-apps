@@ -154,18 +154,18 @@ const advanceBrand = brandMotion.motion(), wheelFrames = new Map();
 let brandImage, brandLayer;
 // Native renderers can draw cached rectangle layers even when bitmap uploads are unavailable.
 function photoLayer(w, h, pixels) {
-    return require('./kit/record').makeLayer(w, h, (layer) => {
+    return (layer, ox, oy) => {
         for (let y = 0; y < h; y++) {
             let x = 0;
             while (x < w) {
                 const start = x, offset = (y * w + x) * 4;
                 const color = pixels.readUInt32BE(offset);
                 while (++x < w && pixels.readUInt32BE((y * w + x) * 4) === color) {}
-                if (pixels[offset + 3]) layer.fillRect(start, y, x - start, 1,
+                if (pixels[offset + 3]) layer.fillRect(ox + start, oy + y, x - start, 1,
                     [pixels[offset], pixels[offset + 1], pixels[offset + 2], pixels[offset + 3]]);
             }
         }
-    });
+    };
 }
 function drawBrand(cv, t, center, y, slot) {
     if (!brandImage) {
@@ -175,7 +175,7 @@ function drawBrand(cv, t, center, y, slot) {
     }
     const title = 'Robito Dashboard', size = 30, font = { font: 'bold' };
     const left = center - (brandImage.w + 12 + cv.textWidth(title, size, font)) / 2;
-    cv.blit(brandLayer, left, y);
+    brandLayer(cv, left, y);
     const now = Date.now(), state = advanceBrand(now, slot.motionSpeed, slot.pedal);
     if (state.frame) brandMotion.wheels.forEach((wheel, i) => {
         const key = 341 + state.frame * 2 + i;
@@ -185,7 +185,7 @@ function drawBrand(cv, t, center, y, slot) {
             patch.layer = photoLayer(patch.w, patch.h, patch.bytes);
             wheelFrames.set(key, patch);
         }
-        cv.blit(patch.layer, left + patch.left, y + patch.top);
+        patch.layer(cv, left + patch.left, y + patch.top);
     });
     brandMotion.drawFlames(cv, left, y, state.flame, now);
     cv.text(title, left + brandImage.w + 12, y + brandImage.h / 2 + 10, size, t.text, font);
