@@ -36,9 +36,13 @@ uniform vec3 u_color;
 uniform float u_phase;
 uniform float u_charge;
 uniform float u_background;
+uniform float u_fit;
 void main() {
     vec2 p = v_uv;
-    if (u_background > 0.5) p.y = (p.y - 0.91) / 0.09;
+    if (u_background > 0.5) {
+        p = (p - vec2(0.5)) / max(0.5, u_fit) + vec2(0.5);
+        p.y = (p.y - 0.91) / 0.09;
+    }
     float q = abs(p.x - 0.5) * 2.0;
     float gap = smoothstep(0.12, 0.20, q);
     float width = max(0.002, 0.055 * (1.0 - q));

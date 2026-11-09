@@ -2,6 +2,7 @@
 const fs=require('fs'),path=require('path');
 const sharp=require(require.resolve('sharp',{paths:[process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES||'',process.cwd()]}));
 const ROOT=path.resolve(__dirname,'../..');
+const VERSION=JSON.parse(fs.readFileSync(path.join(ROOT,'apps/dragon_super/app.json'))).version;
 (async()=>{
  const rows=JSON.parse(fs.readFileSync(path.join(ROOT,'dist/goku-test-snapshots.json')));
  for(const row of rows)for(const l of row.layers){
@@ -54,6 +55,6 @@ document.querySelector('#pedal').oninput=e=>window.setGoku(null,+e.target.value)
 window.addEventListener('resize',resize);window.setGoku(mode,pedal,style);requestAnimationFrame(frame);
 `.replace('DATA',JSON.stringify(rows));
  const html='<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Goku HUD 0.4.0</title><style>*{box-sizing:border-box}body{margin:0;background:#080b11;color:#dce7ef;font:14px system-ui}header,footer{max-width:1500px;margin:auto;padding:22px 28px}header{display:flex;align-items:center;gap:18px;flex-wrap:wrap}h1{font-size:20px;letter-spacing:.12em;margin:0 auto 0 0}small{font-size:11px;color:#708496;letter-spacing:.1em}button{border:1px solid #273746;border-radius:6px;background:#0e151f;color:#a6bacb;padding:11px 18px;cursor:pointer}button[aria-pressed=true]{border-color:#ff4e42;color:white;background:#391d21}#viewport{position:relative;width:100%;overflow:hidden;background:#000}#stage{transform-origin:top left;position:absolute}footer{display:flex;gap:24px;align-items:center;flex-wrap:wrap}input{width:260px;accent-color:#ff4b42}#error{color:#ff6358}#stance{color:#ff6455;letter-spacing:.15em;font-size:12px}</style><header><h1>GOKU HUD <small>0.4.0 · INTERACTIVE PREVIEW</small></h1><button data-mode="eco">ECO PRO</button><button data-mode="comfort">COMFORT</button><button data-mode="sport">SPORT</button></header><div id="viewport"><div id="stage"></div></div><footer><button data-style="performance">Performance</button><button data-style="oem">BMW centre slot</button><label>Accelerator <input id="pedal" type="range" min="0" max="100" value="85"></label><span id="stance"></span><small>SIMULATED VEHICLE VALUES · ORIGINAL BMW GAUGES REMAIN OUTSIDE THE CENTRE SLOT</small><span id="error"></span></footer><script>'+script+'</script></html>';
- fs.writeFileSync(path.join(ROOT,'dist/Goku-HUD-0.4.0-preview.html'),html);
+ fs.writeFileSync(path.join(ROOT,'dist/Goku-HUD-'+VERSION+'-preview.html'),html.replace(/0\.4\.0/g,VERSION));
  console.log('Built interactive preview from tested app layers; '+(Buffer.byteLength(html)/1e6).toFixed(2)+' MB');
 })().catch(e=>{console.error(e);process.exit(1)});

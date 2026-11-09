@@ -48,6 +48,7 @@ jobs:
       - run: node kit/tools/test_engine.js
       - run: python3 kit/tools/build.py dragon_super --preview-only
       - run: node kit/tools/test_dragon_super.js
+      - run: node kit/tools/test_dragon_gauges.js
       - run: node kit/tools/test_edrive.js
       - run: node kit/tools/test_widget_fixes.js
       - run: node kit/tools/test_warmup.js

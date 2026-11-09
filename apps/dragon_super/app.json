@@ -2,7 +2,7 @@
   "id": "dragon_super",
   "title": "Goku HUD",
   "description": "Animated Goku drive-mode cluster and windshield HUD for BMW iDrive 7",
-  "version": "0.4.0",
+  "version": "0.4.2",
   "vendor": "custom",
   "loggingId": "OADB",
   "iconGlyph": "GOKU",
@@ -91,15 +91,36 @@
       "key": "clusterStyle",
       "label": "Cluster design",
       "type": "choice",
-      "default": "oem",
+      "default": "performance",
+      "reset": 1,
       "options": [
         [
-          "oem",
-          "BMW gauges + Goku"
+          "performance",
+          "Goku Performance (full cluster)"
         ],
         [
-          "performance",
-          "Goku Performance"
+          "oem",
+          "BMW gauges + Goku (centre)"
+        ]
+      ]
+    },
+    {
+      "key": "clusterFit",
+      "label": "Cluster fit",
+      "type": "choice",
+      "default": "95",
+      "options": [
+        [
+          "95",
+          "95% (inset)"
+        ],
+        [
+          "90",
+          "90% (more margin)"
+        ],
+        [
+          "100",
+          "100% (original)"
         ]
       ]
     },
@@ -267,9 +288,10 @@
     },
     {
       "key": "alertsOn",
-      "label": "Full-screen alerts",
+      "label": "Custom full-screen alerts",
       "type": "bool",
-      "default": true
+      "default": false,
+      "reset": 1
     },
     {
       "key": "dismissAlert",
@@ -311,7 +333,8 @@
           "multi",
           "MULTIPLE ALERTS"
         ]
-      ]
+      ],
+      "reset": 1
     },
     {
       "key": "limitKnock",

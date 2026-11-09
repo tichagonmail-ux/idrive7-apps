@@ -68,7 +68,8 @@ Module._load=function(req){
  return m;
 };
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'db-test-'));
-fs.writeFileSync(path.join(dir,'settings.json'),JSON.stringify({demo:'off',screens:'both'}));
+// Reproduce a real 0.4.0 installation with its saved centre-only default.
+fs.writeFileSync(path.join(dir,'settings.json'),JSON.stringify({demo:'off',screens:'both',clusterStyle:'oem',alertsOn:true,alertPreview:'afr'}));
 const messages=[];
 const log={info:()=>{},warn:s=>messages.push(s),error:s=>messages.push(s),debug:()=>{}};
 const hu=require(path.join(ROOT,'kit/tools/hu-stub')).headUnit(STAGE,{live:true,dataDir:dir,log,image:()=>Promise.resolve()});
@@ -77,6 +78,61 @@ hu.start();
  await wait(900);
  assert.equal(instances.length,2);
  const [hud,dash]=instances;
+ assert.equal(hu.spec.version,'0.4.2','test requires a current staged build');
+ assert.equal(hu.settings.get('alertsOn'),false,'unvalidated custom alerts remained enabled after update');
+ assert.equal(hu.settings.get('alertPreview'),'off','old preview selection was not cleared');
+ assert.equal(hu.settings.get('clusterStyle'),'performance','saved 0.4.0 centre default was not migrated');
+ assert.equal(dash.target,'panel','upgraded app did not take the whole cluster');
+ assert.deepEqual(dash.size,[1920,720]);
+ const saved=JSON.parse(fs.readFileSync(path.join(dir,'settings.json')));
+ assert.equal(saved._reset_clusterStyle,1,'one-time migration marker was not persisted');
+ // Selecting the optional centre design later remains a deliberate user choice.
+ hu.settings.set('clusterStyle','oem');
+ const reloaded=new hu.settings.constructor(hu.spec.settings);
+ assert.equal(reloaded.get('clusterStyle'),'oem','migration ran again over a later user choice');
+ assert.equal(dash.target,'map');assert.deepEqual(dash.size,[1088,480]);
+ hu.settings.set('clusterStyle','performance');
+ assert.equal(dash.target,'panel');assert.deepEqual(dash.size,[1920,720]);
+ const full=dash.widgets.get('frame').w;
+ assert.deepEqual([full.x,full.y,full.w,full.h],[0,0,1920,640]);
+ const gauges=dash.widgets.get('display').w.parts.filter(p=>p.type==='bmwgauge');
+ assert.deepEqual(gauges.map(p=>p.signal),['speed','rpm'],'full design must redraw both side gauges');
+ for(const fit of [95,90,100]){
+  hu.settings.set('clusterFit',String(fit));
+  const widget=dash.widgets.get('goku'),layer=dash.client.layers.get(widget.ref),s=fit/100;
+  assert.equal(layer.iw,320,'source image resolution must not change with display fit');
+  assert.equal(layer.w,Math.round(320*s));
+  assert.equal(layer.x,Math.round(960+(800-960)*s));
+  const frame=dash.client.layers.get(dash.widgets.get('frame').ref);
+  assert.deepEqual([frame.x,frame.y,frame.w,frame.h],[0,0,1920,640],'background must still cover the original gauges');
+  assert.deepEqual(frame.uniforms.u_fit,[s],'mode bar fit differs from the rest of the layout');
+  for(const l of dash.client.layers.values()){
+   if(l===frame)continue;
+   assert(l.x>=Math.round(960*(1-s))-1&&l.x+l.w<=1920-Math.round(960*(1-s))+1);
+   assert(l.y>=Math.round(320*(1-s))-1&&l.y+l.h<=640-Math.round(320*(1-s))+1);
+  }
+ }
+ hu.settings.set('clusterFit','95');
+ // Reproduce the photographed 14.5 alert: a transient must not trip, and a
+ // sustained trip must not relabel a normal recovered AFR as the trigger.
+ const {AlertEngine}=require(path.join(STAGE,'source/javascript/eva_alerts'));
+ const e=new AlertEngine({armMs:0,thresholds:{afrLow:10.6,afrHigh:18.4}});
+ const input=(v,at)=>({rpm:1800,pedal:85,values:{afr:{v,at}}});
+ assert.equal(e.update(0,input(20,0)),null);
+ assert.equal(e.update(100,input(14.5,100)),null,'single transient produced a full-screen warning');
+ assert.equal(e.update(200,input(20,200)),null);
+ const trip=e.update(1800,input(20,1800));assert.equal(trip.id,'afr');assert.equal(trip.value,20);
+ const clearing=e.update(1900,input(14.5,1900));assert.equal(clearing.value,20,'recovered 14.5 was shown as the triggering value');
+ assert.equal(e.update(3950,input(14.5,3950)),null);
+ const stale=new AlertEngine({armMs:0,thresholds:{afrHigh:18.4}});
+ assert.equal(stale.update(0,input(20,0)),null);
+ assert.equal(stale.update(4000,input(20,0)),null);
+ assert.equal(stale.update(4001,input(20,4001)),null,'stale data completed an earlier AFR pending timer');
+ // Exercise the real FES subscription instead of assigning driveMode directly.
+ for(const [wire,mode] of [[7,'eco'],[4,'comfort'],[1,'sport']]){
+  hu.feed('de.bmw.infotainment.drivingexcitement.FES','statusFESVehicleDynamicSwitchHMI',{actualValueModeDrivingExperience:wire});
+  dash._tick();assert.equal(hud.driveMode,mode);assert.equal(hud.activeName,mode);assert.equal(dash.activeName,mode);
+ }
  const snapshots=process.env.GOKU_CAPTURE?[]:null;
  const {pose,keys,FRAMES}=require(path.join(ROOT,'apps/dragon_super/goku_animation'));
  assert.equal(FRAMES,12);
@@ -127,6 +183,6 @@ hu.start();
  hu.settings.set('screens','off');await wait(300);
  assert(instances.every(x=>x.activeName==='off'));
  assert(!messages.some(s=>/missing|unusable|failed|wrong|refused|no glyph/.test(s)),messages.join(' | '));
- console.log('PASS three forms, two cluster designs, idle/charge, stale signals, GPU keyframes, reconnect, all alerts on both displays, BMW popup priority, native strip, memory/layer limits and Off');
+ console.log('PASS fitted panel at 90/95/100% with full background, custom alert defaults migrated Off, AFR transient/14.5 regression, saved layout migration, FES modes, animations, reconnect, alert budgets, BMW popup priority and Off');
  process.exit(0);
 })().catch(e=>{console.error(e.stack,messages);process.exit(1)});

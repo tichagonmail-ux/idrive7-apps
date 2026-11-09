@@ -13,7 +13,9 @@
  * - nothing is judged until the engine has run for armMs; a stopped engine clears everything at once;
  * - a reading that is missing, not a number or older than staleMs clears its alert at once, without the hold;
  * - the mixture is only judged with the pedal past 50 % (not on a lift-off, when fuel cut reads very lean).
- * An alert shows at once, and goes holdMs after its value has come back past the limit by the hysteresis.
+ * AFR must remain outside its limits for afrTripMs; other channels trip at once.
+ * An alert clears holdMs after recovery past the hysteresis. During AFR's clear
+ * hold its value remains the last out-of-range reading, not the recovered value.
  */
 const PRIORITY = ['knock', 'fuel', 'afr', 'heat', 'boost'];
 const HYSTERESIS = { knock: 1, heat: 3, boost: 0.15, fuel: 5, afr: 0.3 };
@@ -28,10 +30,12 @@ class AlertEngine {
         this.thresholds = o.thresholds || {};
         this.armMs = o.armMs === undefined ? 5000 : o.armMs;
         this.holdMs = o.holdMs === undefined ? 2000 : o.holdMs;
+        this.afrTripMs = o.afrTripMs === undefined ? 1500 : o.afrTripMs;
         this.staleMs = o.staleMs === undefined ? 3000 : o.staleMs;
         this.rotateMs = o.rotateMs === undefined ? 2000 : o.rotateMs;
         this.runningSince = null;
         this.state = {};           // id -> { value, clearAt, dismissed }
+        this.pending = {};         // AFR must remain outside its limits before it trips
         this.pair = null;          // the two ids taking turns, and since when
         this.pairAt = 0;
     }
@@ -58,14 +62,23 @@ class AlertEngine {
 
     _channel(id, now, input) {
         const r = input.values && input.values[id];
-        if (!r || !isNum(r.v) || !isNum(r.at) || now - r.at > this.staleMs) { delete this.state[id]; return; }
+        if (!r || !isNum(r.v) || !isNum(r.at) || now - r.at > this.staleMs) { delete this.state[id]; delete this.pending[id]; return; }
         const j = this._judge(id, r.v, input.pedal);
-        if (j === null) { delete this.state[id]; return; }
+        if (j === null) { delete this.state[id]; delete this.pending[id]; return; }
         const st = this.state[id];
         if (j === 1) {
+            if (id === 'afr' && !st) {
+                if (this.pending[id] === undefined) this.pending[id] = now;
+                if (now - this.pending[id] < this.afrTripMs) return;
+            }
+            delete this.pending[id];
             if (st) { st.value = r.v; st.clearAt = null; } else this.state[id] = { value: r.v, clearAt: null, dismissed: false };
-        } else if (st) {
-            st.value = r.v;
+        } else {
+            delete this.pending[id];
+            if (!st) return;
+            // During the existing clear hold, keep the actual out-of-range
+            // AFR that triggered it; do not present a recovered 14.5 as a trip.
+            if (id !== 'afr') st.value = r.v;
             if (j === 0) st.clearAt = null;
             else if (st.clearAt === null) st.clearAt = now + this.holdMs;
             else if (now >= st.clearAt) delete this.state[id];
@@ -74,7 +87,7 @@ class AlertEngine {
 
     update(now, input) {
         if (!isNum(input.rpm) || input.rpm < RUNNING_RPM) {
-            this.runningSince = null; this.state = {}; this.pair = null;
+            this.runningSince = null; this.state = {}; this.pending = {}; this.pair = null;
             return null;
         }
         if (this.runningSince === null) this.runningSince = now;

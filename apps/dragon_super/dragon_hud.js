@@ -40,6 +40,7 @@ class DragonHud extends Base {
         return require('./dragon_gauges').paint(p, v, this.theme, a[1]);
     }
     _pose(previous) { return animation.pose(this._driveProfile(), this._pedal(), this._raw('rpm'), previous, this.setting('animationOn')); }
+    _panelFit() { return 1; }
     _create(w) {
         if (!['gokucharacter', 'gokuaura', 'gokumodebar'].includes(w.type)) { super._create(w); return; }
         const opts = Object.assign({ target: this.target, klass: w.class || 'content', z: w.z || 0, x: w.x, y: w.y, w: w.w, h: w.h }, this._layerFields());
@@ -49,7 +50,10 @@ class DragonHud extends Base {
         this.widgets.set(w.id, x);
         if (w.type !== 'gokucharacter') {
             this.client.uniform(ref, 'u_color', animation.COLORS[this._driveProfile()].map(v => v / 255));
-            if (w.type === 'gokumodebar') this.client.uniform(ref, 'u_background', [w.background ? 1 : 0]);
+            if (w.type === 'gokumodebar') {
+                this.client.uniform(ref, 'u_background', [w.background ? 1 : 0]);
+                this.client.uniform(ref, 'u_fit', [this._panelFit()]);
+            }
             x.gpuClock = this.client.animate(ref, { property: 'uniform', name: 'u_phase', keys: [[0, 0], [12000, 12]], loop: true });
         }
         this._update(x, Date.now(), true);
@@ -96,12 +100,31 @@ class DragonDash extends DragonHud {
     _isCentre() { return this.setting('clusterStyle') !== 'performance'; }
     _layoutName() { return ['dash', 'both'].includes(this._screens()) ? this._driveProfile() : 'off'; }
     _layoutFile(n) { const t = this._isCentre() ? 'centre' : 'dash'; return n === 'alert' ? 'db_' + t + '_alert' : 'db_' + t + '_' + n; }
-    _layerFields() { return this.target === 'map' ? { contend: 1, guide_hold: 0 } : {}; }
+    _panelFit() {
+        const fit = Number(this.setting('clusterFit'));
+        return this.target === 'panel' && [90,95,100].includes(fit) ? fit / 100 : 1;
+    }
+    _create(w) {
+        this.placingWidget = w;
+        try { return super._create(w); } finally { this.placingWidget = null; }
+    }
+    _layerFields() {
+        if (this.target === 'map') return { contend: 1, guide_hold: 0 };
+        const w = this.placingWidget, fit = this._panelFit();
+        // Keep the full black background. Fit content inside it rather than
+        // exposing the original BMW gauges outside a smaller background.
+        // iw/ih stay at the source resolution, so pixel uploads remain valid.
+        if (!w || w.id === 'frame') return {};
+        return { x: Math.round(960 + (w.x - 960) * fit), y: Math.round(320 + (w.y - 320) * fit),
+            w: Math.round(w.w * fit), h: Math.round(w.h * fit), sampling: 'bilinear' };
+    }
     _popupSlot() { return 0x202; }
     _yieldToPopup(now) { return this.target === 'map' ? false : Base.prototype._yieldToPopup.call(this, now); }
     _rebuildInner() {
         const t = this._isCentre() ? 'map' : 'panel';
-        if (t !== this.target) { this.target = t; this.targetState = null; this.layouts.size = t === 'map' ? [1088, 480] : [1920, 720]; }
+        if (t !== this.target) { this.target = t; this.targetState = null; }
+        this.size = t === 'map' ? [1088, 480] : [1920, 720];
+        this.layouts.size = this.size;
         super._rebuildInner();
     }
     _setupVehicleData() { this.car = this.view.primary.car; this.score = this.view.primary.score; }

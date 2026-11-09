@@ -45,10 +45,14 @@ alert['title'].update(x=660,y=100)
 ca=json.loads(json.dumps(alert));ca['title'].update(x=244,y=70,w=600,h=100)
 ca['widgets'][0].update(x=244,y=190,w=600,h=180)
 (OUT/'db_centre_alert.json').write_text(json.dumps(ca,indent=2))
-spec=json.loads((APP/'app.json').read_text());spec.update(title='Goku HUD',version='0.4.0',description='Animated Goku drive-mode cluster and windshield HUD for BMW iDrive 7',iconGlyph='GOKU')
+spec=json.loads((APP/'app.json').read_text());spec.update(title='Goku HUD',version='0.4.2',description='Animated Goku drive-mode cluster and windshield HUD for BMW iDrive 7',iconGlyph='GOKU')
 spec['credits']['title']='Goku HUD';spec['screens'][0]['title']='Goku HUD';spec['config']['statusName']='Goku HUD'
-spec['settings']=[s for s in spec['settings'] if s['key'] not in ('clusterStyle','animationOn')]
-spec['settings'][1:1]=[dict(key='clusterStyle',label='Cluster design',type='choice',default='oem',options=[['oem','BMW gauges + Goku'],['performance','Goku Performance']]),dict(key='animationOn',label='Character animation',type='bool',default=True)]
+spec['settings']=[s for s in spec['settings'] if s['key'] not in ('clusterStyle','clusterFit','animationOn')]
+spec['settings'][1:1]=[dict(key='clusterStyle',label='Cluster design',type='choice',default='performance',reset=1,options=[['performance','Goku Performance (full cluster)'],['oem','BMW gauges + Goku (centre)']]),dict(key='animationOn',label='Character animation',type='bool',default=True)]
+spec['settings'].insert(2,dict(key='clusterFit',label='Cluster fit',type='choice',default='95',options=[['95','95% (inset)'],['90','90% (more margin)'],['100','100% (original)']]))
+for setting in spec['settings']:
+ if setting['key']=='alertsOn': setting.update(label='Custom full-screen alerts',default=False,reset=1)
+ if setting['key']=='alertPreview': setting.update(default='off',reset=1)
 spec['config']['dme']['iat']=[dict(did='F40F',bytes=1,factor=1,offset=-40,min=-40,max=150,note='Standard OBD intake air temperature PID 0F, UDS form'),dict(obd='0F',bytes=1,factor=1,offset=-40,min=-40,max=150,note='Standard OBD service 01 intake air temperature')]
 (APP/'app.json').write_text(json.dumps(spec,ensure_ascii=False,indent=2)+'\n')
 print('PASS three forms on native BMW cluster, Performance cluster and windshield HUD')

@@ -65,6 +65,7 @@ for mode in ['eco','comfort','sport']:
   if not layer.get('visible',1): continue
   if layer['kind']=='effect': part=effect(layer)
   else: part=Image.frombytes('RGBA',(layer['iw'],layer['ih']),base64.b64decode(layer['rgba']))
+  if part.size!=(layer['w'],layer['h']): part=part.resize((layer['w'],layer['h']),Image.Resampling.BILINEAR)
   image.alpha_composite(part,(layer['x'],layer['y']))
  target=ROOT/('dist/goku-'+mode+'.png');image.convert('RGB').save(target);outputs.append(image)
 contact=Image.new('RGB',(1280,1281),'black')
