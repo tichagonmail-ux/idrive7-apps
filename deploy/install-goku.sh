@@ -4,7 +4,7 @@
 set -eu
 BASE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 NODE=${NODE:-/usr/bin/node}
-PAYLOAD=${1:-$BASE/dragon_super@0.4.4.goku-update.tgz}
+PAYLOAD=${1:-$BASE/dragon_super@0.4.5.goku-update.tgz}
 OAP=${GOKU_OAP_ROOT:-/var/opt/public/oap}
 INSTALLER=${GOKU_INSTALLER:-$BASE/mgu-app-install.sh}
 CHECK_ONLY=${GOKU_CHECK_ONLY:-0}
@@ -24,7 +24,7 @@ mkdir "$WORK/app"
 tar -xzf "$PAYLOAD" -C "$WORK/app"
 "$NODE" - "$WORK/app" <<'JS'
 var fs=require('fs'),p=process.argv[2],m=JSON.parse(fs.readFileSync(p+'/meta.json','utf8'));
-if(m.id!=='dragon_super'||m.version!=='0.4.4'||m.requiresInstalledSDK!==true)throw Error('Wrong Goku HUD payload');
+if(m.id!=='dragon_super'||m.version!=='0.4.5'||m.requiresInstalledSDK!==true)throw Error('Wrong Goku HUD payload');
 delete m.requiresInstalledSDK;fs.writeFileSync(p+'/meta.json',JSON.stringify(m));
 JS
 mkdir -p "$WORK/app/source/node_modules/oap-sdk"
@@ -36,4 +36,4 @@ if [ "$CHECK_ONLY" = 1 ]; then
 fi
 sh "$INSTALLER" verify "$WORK/Goku-HUD.mgu"
 sh "$INSTALLER" install "$WORK/Goku-HUD.mgu"
-echo 'Goku HUD 0.4.4 installed. Open Apps > Goku HUD. Select Mode > Off to return the screens to BMW.'
+echo 'Goku HUD 0.4.5 installed. Open Apps > Goku HUD. Select Mode > Off to return the screens to BMW.'

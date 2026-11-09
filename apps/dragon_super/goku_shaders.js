@@ -44,7 +44,7 @@ void main() {
         // Leave a 30 px horizontal margin. The full frame is opaque down to
         // y=660; changing its height must not stretch/move the decorative bar.
         vec2 px = v_uv * u_size;
-        p = vec2((px.x - 30.0) / 1860.0, (px.y - 597.0) / 52.0);
+        p = vec2((px.x - 30.0) / 1860.0, (px.y - 605.0) / 52.0);
     }
     float q = abs(p.x - 0.5) * 2.0;
     float gap = smoothstep(0.12, 0.20, q);

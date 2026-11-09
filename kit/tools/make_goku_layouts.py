@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 APP=ROOT/'apps/dragon_super'
+PROFILE=json.loads((ROOT/'assets/goku-hud/g20-id7-display-profile.json').read_text())
+RECT=PROFILE['layout']
 OUT=APP/'hud/layouts'
 OUT.mkdir(parents=True,exist_ok=True)
 def text(id,x,y,w,h,value,font='db22',color='white'):
@@ -15,16 +17,24 @@ def canvas(id,x,y,w,h,parts,z=3):
 def write(name,mode,widgets):
  (OUT/(name+'.json')).write_text(json.dumps(dict(schemaVersion=2,name='Goku HUD '+mode,theme='db_'+mode,widgets=widgets),indent=2))
 for mode in ['eco','comfort','sport']:
- parts=[text('brand',600,0,600,48,'M340i','db42'),text('form',600,48,600,30,'{{db:form}}','db22','fg'),
-  dict(id='speedgauge',type='bmwgauge',x=0,y=0,w=600,h=535,signal='speed',max=330),
-  dict(id='rpmgauge',type='bmwgauge',x=1200,y=0,w=600,h=535,signal='rpm',max=8000)]
+ # Rectangles in the reusable profile are panel-global; canvas parts are local.
+ dx,dy,dw,dh=RECT['display']
+ def local(name):
+  x,y,w,h=RECT[name];return [x-dx,y-dy,w,h]
+ parts=[text('brand',*local('brand'),'M340i','db42'),text('form',*local('form'),'{{db:form}}','db22','fg')]
+ for name,signal,maximum in [('speedGauge','speed',330),('rpmGauge','rpm',8000)]:
+  x,y,w,h=local(name)
+  parts.append(dict(id=name.lower(),type='bmwgauge',x=x,y=y,w=w,h=h,signal=signal,max=maximum))
+ bx,by,bw,bh=RECT['bottom']
+ bottom=[]
  for i,(label,value) in enumerate([('OIL °C','{{oil}}'),('COOLANT °C','{{coolant}}'),('IAT °C','{{db:iat}}'),('BOOST bar','{{db:boost}}')]):
-  x=470+i*215
-  parts.extend([text('label'+str(i),x,536,215,23,label,'db18','fg'),text('val'+str(i),x,560,215,30,value,'db26')])
- widgets=[effect('frame','gokumodebar',0,0,1920,660,0,background=True,keepInAlert=True),
-  effect('aura','gokuaura',700,66,520,474,1),canvas('display',60,0,1800,590,parts),
-  effect('goku','gokucharacter',800,80,320,450,4),
-  canvas('mode',400,604,1120,42,[text('mode',310,0,500,42,'{{db:mode}}','db32','white'),text('data',0,9,280,26,'{{db:data}}','db18','amber')],5)]
+  x=RECT['metricGrid'][0]-bx+i*215
+  bottom.extend([text('label'+str(i),x,0,215,23,label,'db18','fg'),text('val'+str(i),x,24,215,30,value,'db26')])
+ for name,value,font,color in [('mode','{{db:mode}}','db32','white'),('data','{{db:data}}','db18','amber')]:
+  x,y,w,h=RECT[name];bottom.append(text(name,x-bx,y-by,w,h,value,font,color))
+ widgets=[effect('frame','gokumodebar',*RECT['frame'],0,background=True,keepInAlert=True),
+  effect('aura','gokuaura',*RECT['aura'],1),canvas('display',dx,dy,dw,dh,parts),
+  effect('goku','gokucharacter',*RECT['goku'],4),canvas('mode',bx,by,bw,bh,bottom,5)]
  write('db_dash_'+mode,mode,widgets)
  centre=[effect('aura','gokuaura',354,50,380,360,1),effect('goku','gokucharacter',424,58,240,340,4),
   effect('modebar','gokumodebar',150,427,788,50,1),
@@ -50,7 +60,6 @@ spec=json.loads((APP/'app.json').read_text());spec.update(title='Goku HUD',descr
 spec['credits']['title']='Goku HUD';spec['screens'][0]['title']='Goku HUD';spec['config']['statusName']='Goku HUD'
 spec['settings']=[s for s in spec['settings'] if s['key'] not in ('clusterStyle','clusterFit','animationOn')]
 spec['settings'][1:1]=[dict(key='clusterStyle',label='Cluster design',type='choice',default='performance',reset=1,options=[['performance','Goku Performance (full cluster)'],['oem','BMW gauges + Goku (centre)']]),dict(key='animationOn',label='Character animation',type='bool',default=True)]
-spec['settings'].insert(2,dict(key='clusterFit',label='Cluster fit',type='choice',default='95',options=[['95','95% (inset)'],['90','90% (more margin)'],['100','100% (original)']]))
 for setting in spec['settings']:
  if setting['key']=='alertsOn': setting.update(label='Custom full-screen alerts',default=False,reset=1)
  if setting['key']=='alertPreview': setting.update(default='off',reset=1)

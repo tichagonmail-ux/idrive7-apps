@@ -1,4 +1,4 @@
-# Goku HUD 0.4.4
+# Goku HUD 0.4.5
 
 BMW iDrive 7 / rooted MGU app. Installed identity remains `dragon_super`, so this updates Dragon Ball Super in place. Original EVAHUD / cluster-render copyright and licence notices remain in LICENSE and NOTICE.
 
@@ -14,7 +14,36 @@ The charging stance starts at 25% pedal, holds above 15%, and returns to idle be
 
 The default cluster design, **Goku Performance (full cluster)**, uses the same whole-cluster `panel` target as the EVA full designs: a green dragon around the blue speed scale and a red scale guard around the RPM scale, with a larger Goku in the middle and a long symmetric pointed mode bar. Versions 0.4.1 and later reset the saved 0.4.0 centre-only default once, so existing installations receive the full design. Later manual selections remain saved. **BMW gauges + Goku (centre)** is the optional native `map` slot design under BMW content; it intentionally leaves the original side gauges in place. The full design's cover stops at y=660 of the 1920×720 panel, leaving the lower native status area, and uses the inherited popup-yield mechanism. The menu also offers Windshield HUD, Cluster + HUD and Off. Off releases all app layers. The y=660 cover comes from the earlier photograph measurement; physical bezel clearance, native fuel/status visibility and BMW warning/popup behavior still require parked-car verification.
 
-## 0.4.4: actual dragon artwork and the lower cover fix
+## 0.4.5: native-size layout within the photographed bezel
+
+The owner's G20 M340i photograph showed that a rectangular layer fitting the
+1920×720 panel could still lose the dragon's horns and the upper right guard
+behind the curved bezel. This release repositions the original artwork rather
+than shrinking it. Both gauges remain 600×535, Goku remains 320×450 and fonts
+retain their original sizes. The full-cluster layout no longer uses a Cluster
+fit percentage; old saved 90/95/100% values are ignored. The optional BMW centre
+slot and windshield HUD retain their own layouts.
+
+Panel-global placement is recorded in
+`assets/goku-hud/g20-id7-display-profile.json`: speed gauge (180,80), RPM gauge
+(1140,80), title y=24 and character (800,93). Compared with the unscaled 0.4.4
+design, each gauge moves 120 px inward and 80 px down. Metrics share the
+existing lower canvas with the mode/status text; no renderer layer is added.
+The opaque cover still ends at y=660, keeping y=660…719 for BMW's native row.
+Popup yielding and Mode > Off are unchanged.
+
+The reusable profile includes eight corresponding cap-line endpoints, the
+traced visible outline and a conservative clearance envelope. It is a
+photo-derived design reference, **not an exact hardware mask dump**. The photo
+was oblique and its saved Cluster fit setting was not recorded. Tests check
+actual alpha pixels at native size against the conservative envelope in all
+three forms, idle/charge and missing-data states, with at least 12 px of
+clearance. New parked-car verification is still required.
+
+See `docs/goku-hud/G20-ID7-screen-reference.md` for measurements, provenance,
+reusable layout rules and the distinction between panel size and visible area.
+
+## 0.4.4 history: actual dragon artwork and the lower cover fix
 
 Both guards now come from `assets/goku-hud/dragon-guards.png`. The green head, horns, whiskers and body are inside the speed gauge's own 600×535 rectangle; the opposite gauge contains the red scales. The old green/red dotted decorations have been removed. Rails, ticks, labels and current-value pointers still use one value path. The artwork is alpha-composited into the existing gauge image, so it adds no renderer layers and does not erase when speed, RPM or gear changes. All parts of the display canvas have non-overlapping rectangles.
 
@@ -22,7 +51,7 @@ The unpushed 0.4.3 experiment is included: the opaque background reaches y=660, 
 
 The layout generator now preserves the version in `app.json`, so rebaking cannot silently restore 0.4.2. `hud.pack`, the simulated HTML and `preview.png` are generated from these same production assets and painter. Tests cover the actual green/red multicolour pixels, head clearance, transparent surroundings, changing values, fit settings, fixed lower strip, existing animation/alert regressions and the renderer's 8-layer/16 MiB limits. This release has desktop validation; it has not been installed or verified on the car.
 
-## 0.4.2: gauge alignment, fitted bounds and custom alerts
+## 0.4.2 history: gauge alignment, fitted bounds and custom alerts
 
 Gauge labels, major ticks and the current-value pointer now share a horizontal value anchor. Labels are centred using actual font ink bounds, decorative caps no longer cross endpoint labels, and progress is clipped to the exact current value. Run `node kit/tools/test_dragon_gauges.js` after staging to verify 42 major dial cases at two sizes plus 63 km/h and 1139 RPM between ticks.
 
@@ -50,4 +79,4 @@ The committed `hud.pack` is the complete runtime data and contains DejaVu glyphs
 
 To produce visual checks: set `GOKU_CAPTURE=1` when running the app test, run `python3 kit/tools/render_goku_preview.py` (Mesa EGL/GLES2 and Pillow), then `node kit/tools/make_goku_preview.js` (sharp). The HTML is a standalone simulated preview, not an app installer. It uses the tested app’s exact image layers, GLSL and animation keys.
 
-Verification covers the 90/95/100% fit, unchanged full background/source resolution, custom-alert defaults migration, AFR transient/recovered-14.5/stale-pending regressions, the 0.4.0-to-full-panel saved-settings migration, subsequent manual selections, real FES notification handlers, target dimensions, both side gauges, every form, both cluster designs, both stances, pedal hysteresis, missing/stale signals, reconnect, all six custom alert types on both targets, the 8-layer/16 MiB renderer limits, the native bottom strip, BMW popup yielding, and Off. GLSL was compiled, linked and rendered with surfaceless EGL/GLES2. The offline installer was checked using an isolated SDK fixture; no real car was connected during this build. No ECU coding, flashing or control writes are performed by this app.
+Verification covers native-size placement despite legacy fit values, real painted alpha-pixel clearance against the photo-derived envelope, unchanged full background/source resolution, custom-alert defaults migration, AFR regressions, saved-settings migration, subsequent manual selections, real FES notification handlers, both side gauges, every form, both cluster designs, both stances, pedal hysteresis, missing/stale signals, reconnect, all six custom alert types on both targets, the 8-layer/16 MiB renderer limits, the native bottom strip, BMW popup yielding, and Off. GLSL is compiled, linked and rendered with surfaceless EGL/GLES2. Desktop checks do not validate the physical car or missing live vehicle signals. No ECU coding, flashing or control writes are performed by this app.

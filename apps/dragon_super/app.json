@@ -2,7 +2,7 @@
   "id": "dragon_super",
   "title": "Goku HUD",
   "description": "Animated Goku drive-mode cluster and windshield HUD for BMW iDrive 7",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "vendor": "custom",
   "loggingId": "OADB",
   "iconGlyph": "GOKU",
@@ -101,26 +101,6 @@
         [
           "oem",
           "BMW gauges + Goku (centre)"
-        ]
-      ]
-    },
-    {
-      "key": "clusterFit",
-      "label": "Cluster fit",
-      "type": "choice",
-      "default": "95",
-      "options": [
-        [
-          "95",
-          "95% (inset)"
-        ],
-        [
-          "90",
-          "90% (more margin)"
-        ],
-        [
-          "100",
-          "100% (original)"
         ]
       ]
     },

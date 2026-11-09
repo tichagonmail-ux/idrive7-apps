@@ -100,25 +100,11 @@ class DragonDash extends DragonHud {
     _isCentre() { return this.setting('clusterStyle') !== 'performance'; }
     _layoutName() { return ['dash', 'both'].includes(this._screens()) ? this._driveProfile() : 'off'; }
     _layoutFile(n) { const t = this._isCentre() ? 'centre' : 'dash'; return n === 'alert' ? 'db_' + t + '_alert' : 'db_' + t + '_' + n; }
-    _panelFit() {
-        const fit = Number(this.setting('clusterFit'));
-        return this.target === 'panel' && [90,95,100].includes(fit) ? fit / 100 : 1;
-    }
-    _create(w) {
-        this.placingWidget = w;
-        try { return super._create(w); } finally { this.placingWidget = null; }
-    }
     _layerFields() {
         if (this.target === 'map') return { contend: 1, guide_hold: 0 };
-        const w = this.placingWidget, fit = this._panelFit();
-        // Keep the full black background. Fit content inside it rather than
-        // exposing the original BMW gauges outside a smaller background.
-        // iw/ih stay at the source resolution, so pixel uploads remain valid.
-        // The lower cover and mode strip must not retreat with Cluster fit.
-        // Fit only the upper gauges/character; anchor this strip to the panel.
-        if (!w || w.id === 'frame' || w.id === 'mode') return {};
-        return { x: Math.round(960 + (w.x - 960) * fit), y: Math.round(320 + (w.y - 320) * fit),
-            w: Math.round(w.w * fit), h: Math.round(w.h * fit), sampling: 'bilinear' };
+        // 0.4.5 places full-size artwork within the measured bezel envelope.
+        // Old saved 90/95% values must not rescale this new geometry.
+        return {};
     }
     _popupSlot() { return 0x202; }
     _yieldToPopup(now) { return this.target === 'map' ? false : Base.prototype._yieldToPopup.call(this, now); }

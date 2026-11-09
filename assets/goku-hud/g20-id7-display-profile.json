@@ -1,0 +1,497 @@
+{
+  "schemaVersion": 1,
+  "id": "g20-id7-photo-v1",
+  "status": "photo-derived; parked-car validation pending",
+  "vehicle": "BMW G20 M340i 2021 / Live Cockpit Professional",
+  "panel": {
+    "width": 1920,
+    "height": 720,
+    "nominalDiagonalInches": 12.3,
+    "appCoverBottom": 660,
+    "nativeStatusStrip": [
+      0,
+      660,
+      1920,
+      60
+    ]
+  },
+  "evidence": {
+    "photoFile": "IMG_72F8E9E5-A009-4931-B434-6896E32BA314.jpeg",
+    "photoSha256": "8baf2db41c07d07b76de64db1aee39c3c3fb6bc855c28ca4008aa4720c022201",
+    "photoSize": [
+      1536,
+      1152
+    ],
+    "sourceVersion": "0.4.4",
+    "sourceCommit": "1fc39003593511bd2ffc0f2f1bc74ebefddb1182",
+    "method": "8 cap-line endpoints, planar homography, manually traced visible bezel; anchors are original unscaled design coordinates",
+    "anchorRmsPhotoPixels": 1.992,
+    "edgePickingUncertaintyPhotoPixels": 4,
+    "clusterFitAtCapture": "not confirmed; do not treat this as a hardware mask dump",
+    "limitations": [
+      "single oblique photograph; lens/edge-picking error remains",
+      "panel resolution comes from renderer target, not photo pixel dimensions",
+      "new layout uses native pixel positions; no percentage scale",
+      "conservative envelope also covers the 95% registration hypothesis"
+    ]
+  },
+  "referenceAnchorsDesign": [
+    [
+      299.0,
+      92.0
+    ],
+    [
+      650.0,
+      92.0
+    ],
+    [
+      284.0,
+      527.0
+    ],
+    [
+      555.0,
+      527.0
+    ],
+    [
+      1270.0,
+      92.0
+    ],
+    [
+      1621.0,
+      92.0
+    ],
+    [
+      1365.0,
+      527.0
+    ],
+    [
+      1636.0,
+      527.0
+    ]
+  ],
+  "referenceAnchorsPhoto": [
+    [
+      366.0,
+      440.0
+    ],
+    [
+      614.0,
+      436.0
+    ],
+    [
+      364.0,
+      737.0
+    ],
+    [
+      555.0,
+      730.0
+    ],
+    [
+      1025.0,
+      426.0
+    ],
+    [
+      1257.0,
+      421.0
+    ],
+    [
+      1097.0,
+      714.0
+    ],
+    [
+      1276.0,
+      708.0
+    ]
+  ],
+  "visibleBezelPhoto": [
+    [
+      172.0,
+      518.0
+    ],
+    [
+      195.0,
+      489.0
+    ],
+    [
+      230.0,
+      466.0
+    ],
+    [
+      300.0,
+      431.0
+    ],
+    [
+      355.0,
+      408.0
+    ],
+    [
+      450.0,
+      389.0
+    ],
+    [
+      600.0,
+      375.0
+    ],
+    [
+      800.0,
+      367.0
+    ],
+    [
+      1000.0,
+      369.0
+    ],
+    [
+      1150.0,
+      376.0
+    ],
+    [
+      1250.0,
+      395.0
+    ],
+    [
+      1325.0,
+      426.0
+    ],
+    [
+      1390.0,
+      465.0
+    ],
+    [
+      1448.0,
+      499.0
+    ],
+    [
+      1457.0,
+      524.0
+    ],
+    [
+      1462.0,
+      799.0
+    ],
+    [
+      1447.0,
+      823.0
+    ],
+    [
+      1405.0,
+      829.0
+    ],
+    [
+      1200.0,
+      839.0
+    ],
+    [
+      1000.0,
+      849.0
+    ],
+    [
+      650.0,
+      864.0
+    ],
+    [
+      220.0,
+      873.0
+    ],
+    [
+      198.0,
+      868.0
+    ],
+    [
+      181.0,
+      856.0
+    ],
+    [
+      175.0,
+      837.0
+    ]
+  ],
+  "observedBezelDesign": [
+    [
+      17.81,
+      199.88
+    ],
+    [
+      51.22,
+      158.47
+    ],
+    [
+      101.48,
+      126.07
+    ],
+    [
+      202.1,
+      77.06
+    ],
+    [
+      281.45,
+      44.93
+    ],
+    [
+      418.66,
+      19.59
+    ],
+    [
+      636.99,
+      2.88
+    ],
+    [
+      932.04,
+      -3.78
+    ],
+    [
+      1231.72,
+      4.53
+    ],
+    [
+      1459.59,
+      19.21
+    ],
+    [
+      1612.42,
+      50.93
+    ],
+    [
+      1727.03,
+      100.49
+    ],
+    [
+      1826.3,
+      162.27
+    ],
+    [
+      1915.33,
+      216.42
+    ],
+    [
+      1928.15,
+      255.1
+    ],
+    [
+      1921.65,
+      676.18
+    ],
+    [
+      1896.93,
+      711.95
+    ],
+    [
+      1831.06,
+      718.65
+    ],
+    [
+      1514.0,
+      721.94
+    ],
+    [
+      1210.04,
+      725.46
+    ],
+    [
+      690.59,
+      727.79
+    ],
+    [
+      73.38,
+      716.9
+    ],
+    [
+      42.58,
+      708.46
+    ],
+    [
+      19.08,
+      690.18
+    ],
+    [
+      11.29,
+      662.4
+    ]
+  ],
+  "safeEnvelope": [
+    [
+      64.92,
+      205.89
+    ],
+    [
+      96.66,
+      166.55
+    ],
+    [
+      144.41,
+      135.77
+    ],
+    [
+      240.0,
+      89.2
+    ],
+    [
+      315.38,
+      58.68
+    ],
+    [
+      445.73,
+      34.61
+    ],
+    [
+      653.14,
+      18.74
+    ],
+    [
+      933.44,
+      12.41
+    ],
+    [
+      1218.13,
+      20.31
+    ],
+    [
+      1434.61,
+      34.25
+    ],
+    [
+      1579.8,
+      64.39
+    ],
+    [
+      1688.68,
+      111.47
+    ],
+    [
+      1782.98,
+      170.15
+    ],
+    [
+      1867.57,
+      221.59
+    ],
+    [
+      1879.75,
+      258.34
+    ],
+    [
+      1873.57,
+      658.37
+    ],
+    [
+      1850.08,
+      692.35
+    ],
+    [
+      1787.51,
+      698.72
+    ],
+    [
+      1486.3,
+      701.84
+    ],
+    [
+      1197.54,
+      705.19
+    ],
+    [
+      704.06,
+      707.4
+    ],
+    [
+      117.71,
+      697.06
+    ],
+    [
+      88.45,
+      689.04
+    ],
+    [
+      66.13,
+      671.68
+    ],
+    [
+      58.73,
+      645.28
+    ]
+  ],
+  "minimumInkClearance": 12,
+  "alphaThreshold": 32,
+  "layout": {
+    "frame": [
+      0,
+      0,
+      1920,
+      660
+    ],
+    "display": [
+      60,
+      0,
+      1800,
+      615
+    ],
+    "speedGauge": [
+      180,
+      80,
+      600,
+      535
+    ],
+    "rpmGauge": [
+      1140,
+      80,
+      600,
+      535
+    ],
+    "brand": [
+      780,
+      24,
+      360,
+      48
+    ],
+    "form": [
+      780,
+      72,
+      360,
+      30
+    ],
+    "aura": [
+      700,
+      80,
+      520,
+      474
+    ],
+    "goku": [
+      800,
+      93,
+      320,
+      450
+    ],
+    "bottom": [
+      400,
+      540,
+      1120,
+      116
+    ],
+    "metricGrid": [
+      530,
+      540,
+      215,
+      54
+    ],
+    "mode": [
+      710,
+      618,
+      500,
+      38
+    ],
+    "data": [
+      740,
+      594,
+      440,
+      22
+    ]
+  },
+  "reuseRules": [
+    "retain full-size artwork and fonts; reposition rather than globally shrink",
+    "test all opaque artwork pixels against safeEnvelope, not only rectangular layer bounds",
+    "keep full black cover independent of artwork; do not reduce its width",
+    "reserve y>=660 for native BMW status; leave warning/popup yield and Off intact",
+    "photo mask is not certification that all BMW warnings remain visible; verify parked",
+    "recheck mask if cluster hardware or renderer mapping changes"
+  ],
+  "nominalSizeSource": "https://www.press.bmwgroup.com/india/article/detail/T0327369EN/3rill-mplified%3A-the-first-ever-bmw-m340i-xdrive-debuts-in-india?language=en"
+}

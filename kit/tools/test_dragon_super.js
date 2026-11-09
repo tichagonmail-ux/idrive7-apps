@@ -1,6 +1,29 @@
 // Fake cluster renderer adapted from DukeAPenguin EVAHUD tests (MIT).
 const fs=require('fs'),path=require('path'),os=require('os'),assert=require('assert'),Module=require('module');
 const ROOT=path.resolve(__dirname,'../..'), STAGE=path.join(ROOT,'dist/dragon_super');
+const PROFILE=JSON.parse(fs.readFileSync(path.join(ROOT,'assets/goku-hud/g20-id7-display-profile.json')));
+function inkClearance(x,y) {
+ const p=PROFILE.safeEnvelope;let inside=false,nearest=Infinity;
+ for(let i=0,j=p.length-1;i<p.length;j=i++){
+  const a=p[j],b=p[i],dx=b[0]-a[0],dy=b[1]-a[1];
+  if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])inside=!inside;
+  const t=Math.max(0,Math.min(1,((x-a[0])*dx+(y-a[1])*dy)/(dx*dx+dy*dy)));
+  nearest=Math.min(nearest,Math.hypot(x-a[0]-t*dx,y-a[1]-t*dy));
+ }
+ return inside?nearest:-nearest;
+}
+function assertPhotoBezel(layers) {
+ for(const l of layers){
+  if(l.kind!=='image'||!l.rgba)continue;
+  assert.equal(l.w,l.iw,'bezel test requires native-size pixels');assert.equal(l.h,l.ih);
+  let nearest=Infinity;
+  for(let y=0;y<l.ih;y++)for(let x=0;x<l.iw;x++){
+   if(l.rgba[(y*l.iw+x)*4+3]<PROFILE.alphaThreshold)continue;
+   nearest=Math.min(nearest,inkClearance(l.x+x+.5,l.y+y+.5));
+  }
+  assert(nearest>=PROFILE.minimumInkClearance,'opaque artwork crosses the photo-derived clearance envelope: '+nearest.toFixed(2)+' px');
+ }
+}
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 class FakeClient {
     constructor(name) {
@@ -69,7 +92,7 @@ Module._load=function(req){
 };
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'db-test-'));
 // Reproduce a real 0.4.0 installation with its saved centre-only default.
-fs.writeFileSync(path.join(dir,'settings.json'),JSON.stringify({demo:'off',screens:'both',clusterStyle:'oem',alertsOn:true,alertPreview:'afr'}));
+fs.writeFileSync(path.join(dir,'settings.json'),JSON.stringify({demo:'off',screens:'both',clusterStyle:'oem',clusterFit:'90',alertsOn:true,alertPreview:'afr'}));
 const messages=[];
 const log={info:()=>{},warn:s=>messages.push(s),error:s=>messages.push(s),debug:()=>{}};
 const hu=require(path.join(ROOT,'kit/tools/hu-stub')).headUnit(STAGE,{live:true,dataDir:dir,log,image:()=>Promise.resolve()});
@@ -104,24 +127,22 @@ hu.start();
   const a=parts[i],b=parts[j];
   assert(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y,'overlapping display parts: '+a.id+' / '+b.id);
  }
- for(const fit of [95,90,100]){
-  hu.settings.set('clusterFit',String(fit));
-  const widget=dash.widgets.get('goku'),layer=dash.client.layers.get(widget.ref),s=fit/100;
-  assert.equal(layer.iw,320,'source image resolution must not change with display fit');
-  assert.equal(layer.w,Math.round(320*s));
-  assert.equal(layer.x,Math.round(960+(800-960)*s));
-  const frame=dash.client.layers.get(dash.widgets.get('frame').ref);
-  assert.deepEqual([frame.x,frame.y,frame.w,frame.h],[0,0,1920,660],'background must still cover the original gauges');
-  assert.deepEqual(frame.uniforms.u_size,[1920,660],'mode bar must use panel coordinates');
-  const lower=dash.client.layers.get(dash.widgets.get('mode').ref);
-  assert.deepEqual([lower.x,lower.y,lower.w,lower.h],[400,604,1120,42],'lower mode strip retreated with upper content fit');
+ assert(!hu.spec.settings.some(s=>s.key==='clusterFit'),'new layout must not expose an inactive scale control');
+ // Saved fit values from 0.4.4 must not scale the new native-pixel layout.
+ for(const fit of ['90','95','100']){
+  hu.settings.set('clusterFit',fit);dash._rebuild();
+  const layer=dash.client.layers.get(dash.widgets.get('goku').ref);
+  assert.deepEqual([layer.x,layer.y,layer.w,layer.h,layer.iw,layer.ih],[800,93,320,450,320,450]);
   for(const l of dash.client.layers.values()){
-   if(l===frame||l===lower)continue;
-   assert(l.x>=Math.round(960*(1-s))-1&&l.x+l.w<=1920-Math.round(960*(1-s))+1);
-   assert(l.y>=Math.round(320*(1-s))-1&&l.y+l.h<=640-Math.round(320*(1-s))+1);
+   assert(l.x>=0&&l.y>=0&&l.x+l.w<=1920&&l.y+l.h<=660,'native artwork escaped app region');
+   if(l.kind==='image')assert(l.w===l.iw&&l.h===l.ih,'native artwork was scaled');
   }
  }
- hu.settings.set('clusterFit','95');
+ const bottom=dash.widgets.get('mode').w;
+ for(let i=0;i<bottom.parts.length;i++)for(let j=i+1;j<bottom.parts.length;j++){
+  const a=bottom.parts[i],b=bottom.parts[j];
+  assert(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y,'overlapping bottom parts: '+a.id+' / '+b.id);
+ }
  // Reproduce the photographed 14.5 alert: a transient must not trip, and a
  // sustained trip must not relabel a normal recovered AFR as the trigger.
  const {AlertEngine}=require(path.join(STAGE,'source/javascript/eva_alerts'));
@@ -170,8 +191,9 @@ hu.start();
     assert(!instance.client.refused.length,instance.client.refused.join());
     assert(instance.client.layers.size<=8);
     if(instance===dash&&style==='performance')assert(Array.from(instance.client.layers.values()).every(l=>l.y+l.h<=660),'covered native BMW status strip');
+    if(instance===dash&&style==='performance')assertPhotoBezel(Array.from(instance.client.layers.values()));
    }
-   if(snapshots)snapshots.push({style,mode,pedal,layers:Array.from(dash.client.layers.values()).map(l=>Object.assign({},l,{rgba:l.rgba?l.rgba.toString('base64'):undefined}))});
+   if(snapshots)snapshots.push({style,mode,pedal,dataState:'live',layers:Array.from(dash.client.layers.values()).map(l=>Object.assign({},l,{rgba:l.rgba?l.rgba.toString('base64'):undefined}))});
    for(const key of ['knock','heat','boost','fuel','afr','multi']){
     for(const instance of instances){instance.alertShow={preview:true,kind:key==='multi'?'multi':'single',id:key,count:2,value:2.1,ids:['heat','boost']};assert(instance._alertLayoutFor(key));instance._showAlert(key,Date.now());assert(instance.alertLayers);assert(!instance.client.refused.length,instance.client.refused.join());}
     assert(FakeClient.memory()<=16*1024*1024,'exceeded renderer memory budget');
@@ -185,6 +207,13 @@ hu.start();
  // A missing pedal or a stale vehicle stream immediately releases the charging pose.
  hud.car.lastCar=Date.now()-4000;hud.pedalNow=100;
  for(const instance of instances){const w=instance.widgets.get('goku');instance._update(w,Date.now(),false);assert.equal(w.stance,'idle');assert.equal(instance._raw('speed'),null);}
+ // Capture the photographed no-data state too, rather than previewing only a
+ // healthy stream. This includes the real amber status text and -- readouts.
+ if(snapshots)for(const mode of ['eco','comfort','sport']){
+  hud.driveMode=mode;hud._rebuild();dash._rebuild();dash._tick();await wait(270);
+  assertPhotoBezel(Array.from(dash.client.layers.values()));
+  snapshots.push({style:'performance',mode,pedal:0,dataState:'missing',layers:Array.from(dash.client.layers.values()).map(l=>Object.assign({},l,{rgba:l.rgba?l.rgba.toString('base64'):undefined}))});
+ }
  // A panel yields all content to BMW popups, and restores it afterwards.
  dash.popups.poll=()=>{};dash.popups.shown=()=>true;assert(dash._yieldToPopup(Date.now()));assert(dash.client.shown().length===0);
  dash.popups.shown=()=>false;assert(!dash._yieldToPopup(Date.now()));assert(dash.client.shown().length>0);
@@ -192,6 +221,6 @@ hu.start();
  hu.settings.set('screens','off');await wait(300);
  assert(instances.every(x=>x.activeName==='off'));
  assert(!messages.some(s=>/missing|unusable|failed|wrong|refused|no glyph/.test(s)),messages.join(' | '));
- console.log('PASS dragon guards share non-overlapping gauge rectangles, fitted panel at 90/95/100%, 660px cover and fixed lower strip, custom alert defaults migrated Off, AFR transient/14.5 regression, saved layout migration, FES modes, animations, reconnect, alert budgets, BMW popup priority and Off');
+ console.log('PASS native-size photo-fit layout ignores legacy 90/95/100%, non-overlapping canvases, 660px cover, missing-data captures, alert migration, AFR regressions, modes, animation, reconnect, renderer budgets, BMW popup yield and Off');
  process.exit(0);
 })().catch(e=>{console.error(e.stack,messages);process.exit(1)});
