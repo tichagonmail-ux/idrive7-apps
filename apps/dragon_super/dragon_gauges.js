@@ -1,51 +1,49 @@
 'use strict';
 const { Canvas } = require('./kit/canvas');
-
-// An open, angular instrument rail, reflected for the right-hand tachometer.
-const RAIL = [[178, 383], [96, 252], [60, 178], [106, 98], [172, 43], [399, 32]];
-const LENGTHS = RAIL.slice(1).map((p, i) => Math.hypot(p[0] - RAIL[i][0], p[1] - RAIL[i][1]));
-const TOTAL = LENGTHS.reduce((a, b) => a + b, 0);
-function point(ratio, inset, mirrored) {
-    let distance = Math.max(0, Math.min(1, ratio)) * TOTAL, i = 0;
-    while (i < LENGTHS.length - 1 && distance > LENGTHS[i]) distance -= LENGTHS[i++];
-    const a = RAIL[i], b = RAIL[i + 1], length = LENGTHS[i], t = distance / length;
-    const nx = -(b[1] - a[1]) / length, ny = (b[0] - a[0]) / length;
-    const x = a[0] + (b[0] - a[0]) * t + nx * inset;
-    return [mirrored ? 520 - x : x, a[1] + (b[1] - a[1]) * t + ny * inset];
+const RAIL = [[180, 429], [34, 233], [180, 34]];
+const LENGTHS = [Math.hypot(146,196),Math.hypot(146,199)], TOTAL = LENGTHS[0]+LENGTHS[1];
+function point(ratio,inset,mirror) {
+    const dist=Math.max(0,Math.min(1,ratio))*TOTAL, i=dist<=LENGTHS[0]?0:1;
+    const t=(dist-(i?LENGTHS[0]:0))/LENGTHS[i], a=RAIL[i],b=RAIL[i+1];
+    const x=a[0]+(b[0]-a[0])*t-(b[1]-a[1])/LENGTHS[i]*inset;
+    const y=a[1]+(b[1]-a[1])*t+(b[0]-a[0])/LENGTHS[i]*inset;
+    return [mirror?600-x:x,y];
 }
-function paint(part, raw) {
-    const cv = new Canvas(part.w, part.h);
-    const rpm = part.signal === 'rpm', valid = Number.isFinite(raw), value = valid ? Math.max(0, raw) : 0;
-    const color = rpm ? '#ff3851' : '#42c7ff';
-    const line = (a, b, width, ink) => cv.line(a[0], a[1], b[0], b[1], width, ink);
-    // Close-set strips form the beveled rail and its blue/red illuminated channel.
-    for (let i = 0; i < 120; i++) {
-        const a = i / 120, b = (i + 1) / 120;
-        line(point(a, 0, rpm), point(b, 0, rpm), 26, rpm ? '#47131d' : '#103c55');
-        line(point(a, -14, rpm), point(b, -14, rpm), 3, '#edf8ff');
-        line(point(a, 15, rpm), point(b, 15, rpm), 2, color);
-        if (valid && a <= value / part.max) line(point(a, 0, rpm), point(b, 0, rpm), 17, color);
+function paint(part,raw,theme,gear) {
+    const cv=new Canvas(part.w,part.h), rpm=part.signal==='rpm', valid=Number.isFinite(raw);
+    const value=valid?Math.max(0,Math.min(part.max,raw)):0, c=rpm?'#ff3a4e':'#42cfff';
+    const scale=p=>[p[0]*part.w/600,p[1]*part.h/455];
+    const line=(a,b,w,color)=>{a=scale(a);b=scale(b);cv.line(a[0],a[1],b[0],b[1],w*part.h/455,color);};
+    for(let i=0;i<96;i++) {
+        const a=i/96,b=(i+1)/96;
+        line(point(a,0,rpm),point(b,0,rpm),24,rpm?'#3c0b19':'#062f46');
+        line(point(a,-13,rpm),point(b,-13,rpm),2,'#d8f4ff');
+        line(point(a,14,rpm),point(b,14,rpm),2,c);
+        if(valid&&a<=value/part.max) {
+            line(point(a,0,rpm),point(b,0,rpm),17,c);
+            line(point(a,-3,rpm),point(b,-3,rpm),3,'#ecfbff');
+        }
+        // A fine scaled outer rail carries the dragon palette without covering numbers.
+        const a0=point(a+0.002,-26,rpm),b0=point(b-0.002,-26,rpm);
+        line(a0,b0,8,rpm?(i%3?'#96142a':'#e53143'):(i%3?'#075f38':'#249753'));
     }
-    // Discrete blocks sit outside the rail, as on the reference's two side scales.
-    for (let i = 0; i < 44; i++) {
-        const a = point(i / 44 + 0.004, -30, rpm), b = point((i + 1) / 44 - 0.004, -30, rpm);
-        const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
-        const nx = -(b[1] - a[1]) / length * 5, ny = (b[0] - a[0]) / length * 5;
-        cv.quad([[a[0] + nx, a[1] + ny], [b[0] + nx, b[1] + ny],
-            [b[0] - nx, b[1] - ny], [a[0] - nx, a[1] - ny]],
-            valid && i / 44 <= value / part.max ? color : rpm ? '#6f2635' : '#205773');
+    const top=point(1,0,rpm), topend=[rpm?10:590,34];
+    line(top,topend,14,rpm?'#390c19':'#07394d'); line(top,topend,3,c);
+    const bottom=point(0,0,rpm); line(bottom,[rpm?105:495,429],2,'#c4d3de');
+    const count=rpm?8:11;
+    for(let i=0;i<=count;i++) {
+        const f=i/count,a=point(f,20,rpm),b=point(f,39,rpm),p=point(f,0,rpm);
+        p[0] += rpm ? -67 : 67;
+        if (i === 0) p[1] -= 13;
+        if (i === count) p[1] += 19;
+        line(a,b,2,'#dce9f1');
+        cv.text(String(rpm?i:i*30),p[0]*part.w/600,p[1]*part.h/455+7,22*part.h/455,'#f1f5f8',{align:'center'});
     }
-    const count = rpm ? 8 : 11;
-    for (let i = 0; i <= count; i++) {
-        const p = point(i / count, 37, rpm);
-        cv.text(String(rpm ? i : i * 30), p[0], p[1] + 7, 20, '#d9e8f1', { align: 'center' });
-    }
-    if (valid) line(point(value / part.max, -19, rpm), point(value / part.max, 22, rpm), 5, '#ffffff');
-    const x = rpm ? 192 : 328;
-    cv.text(valid ? (rpm ? (value / 1000).toFixed(1) : String(Math.round(value))) : '--', x, 243, 74, '#ffffff', { align: 'center', font: 'num' });
-    cv.text(rpm ? 'RPM x1000' : 'km/h', x, 281, 22, color, { align: 'center' });
-    const a = point(0, 0, rpm), end = [rpm ? 90 : 430, 384];
-    line(a, end, 2, '#c7d2dc');
+    if(valid) line(point(value/part.max,-15,rpm),point(value/part.max,19,rpm),5,'#ffffff');
+    const x=(rpm?220:380)*part.w/600;
+    cv.text(valid?String(Math.round(value)):'--',x,248*part.h/455,(rpm?77:91)*part.h/455,'#ffffff',{align:'center',font:'num'});
+    cv.text(rpm?'RPM':'km/h',x,292*part.h/455,27*part.h/455,c,{align:'center'});
+    if(!rpm) cv.text(valid?(gear||'--'):'--',x,355*part.h/455,38*part.h/455,'#edf5ff',{align:'center'});
     return Buffer.from(cv.d);
 }
-module.exports = { paint };
+module.exports={paint};

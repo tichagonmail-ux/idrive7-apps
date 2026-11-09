@@ -46,3 +46,6 @@ kit/tools/.font-cache/
 /kit/renderd/core
 /apps/zf8hp/data/
 egs-snapshot*.json
+
+# Goku HUD unpacked build intermediates (release data lives in hud.pack).
+/apps/dragon_super/hud/

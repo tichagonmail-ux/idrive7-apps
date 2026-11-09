@@ -36,6 +36,9 @@ const TYPES = {
     evahazard: ['stripe'],
     evaseven: ['margin'],
     evarings: ['r0', 'step'],
+    gokucharacter: [],
+    gokuaura: [],
+    gokumodebar: [],
 };
 const CLASSES = ['ambient', 'content', 'overlay', 'alert'];
 

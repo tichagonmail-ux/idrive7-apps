@@ -17,8 +17,8 @@ const STOICH = 14.7;
 const RETRY_REFUSED_MS = 30000;
 const BARO_EVERY_MS = 60000;
 const LINK_UP_MS = 5000;
-const SOURCE = { knock: 'knock', fuel: 'fuel', afr: 'lambda', boost: 'boost', burn: 'burn' };
-const ORDER = ['knock', 'fuel', 'afr', 'boost', 'burn'];
+const SOURCE = { knock: 'knock', fuel: 'fuel', afr: 'lambda', boost: 'boost', burn: 'burn', iat: 'iat' };
+const ORDER = ['knock', 'fuel', 'afr', 'boost', 'burn', 'iat'];
 
 class EvaDiag {
     constructor(opts) {

@@ -398,9 +398,9 @@ def build_start_widget(spec, app_id, icon_src, out, pkg_out=None):
     return {'component': comp, 'layout': ui['containers']['500']['components'][str(WIDGET_COMPONENT_ID)]['cells']['Widget']['value']}
 
 
-def build(app_id, language='en', preview_only=False):
+def build(app_id, language='en', preview_only=False, update_only=False):
     language = normalize_language(language)
-    if not preview_only and not all(os.path.isfile(os.path.join(SDK, name)) for name in ('index.js', 'package.json')):
+    if not preview_only and not update_only and not all(os.path.isfile(os.path.join(SDK, name)) for name in ('index.js', 'package.json')):
         raise SystemExit('BMW oap-sdk is missing. Extract it from your own head unit with kit/tools/extract_sdk.js, '
                          'or use --preview-only for an offline preview (no installable package).')
     adir = os.path.join(APPS, app_id)
@@ -523,8 +523,9 @@ def build(app_id, language='en', preview_only=False):
     if preview_only:
         print('%s %s: offline preview in %s (NO SDK, NOT INSTALLABLE)' % (app_id, ver, stage))
         return
-    shutil.copy(os.path.join(SDK, 'index.js'), os.path.join(src, 'node_modules', 'oap-sdk', 'index.js'))
-    shutil.copy(os.path.join(SDK, 'package.json'), os.path.join(src, 'node_modules', 'oap-sdk', 'package.json'))
+    if not update_only:
+        shutil.copy(os.path.join(SDK, 'index.js'), os.path.join(src, 'node_modules', 'oap-sdk', 'index.js'))
+        shutil.copy(os.path.join(SDK, 'package.json'), os.path.join(src, 'node_modules', 'oap-sdk', 'package.json'))
 
     # --- rhmiData: package format (inside source/) and installed format ---
     icon = spec['id'] + '_icon.png'
@@ -582,6 +583,8 @@ def build(app_id, language='en', preview_only=False):
     # --- installer helpers + metadata ---
     shutil.copytree(os.path.join(KIT, 'tools', 'oapgen'), os.path.join(stage, 'oapgen'))
     meta = {'id': app_id, 'version': ver, 'title': spec['title'], 'native': NATIVE, 'kit': 1}
+    if update_only:
+        meta['requiresInstalledSDK'] = True
     # app.json signals with "_optional": "<what the app loses>": a unit without that interface
     # still installs the app, without it (deploy/mgu-app-install.sh says what is missing)
     optional = {i: f['_optional'] for i, f in spec.get('signals', {}).items() if isinstance(f, dict) and f.get('_optional')}
@@ -591,14 +594,16 @@ def build(app_id, language='en', preview_only=False):
 
     # --- archives ---
     os.makedirs(DIST, exist_ok=True)
-    bundle = os.path.join(DIST, f'{app_id}@{ver}.mgu')
+    suffix = 'goku-update.tgz' if update_only else 'mgu'
+    bundle = os.path.join(DIST, f'{app_id}@{ver}.{suffix}')
     with gz_header_free(bundle) as gz, tarfile.open(fileobj=gz, mode='w') as tf:
         for n in ('meta.json', 'source', 'rhmiData', 'rhmiDataStartWidget', 'oapgen'):
             if os.path.exists(os.path.join(stage, n)):
                 tf.add(os.path.join(stage, n), arcname=n)
-    npm = os.path.join(DIST, f'{app_id}@{ver}.tgz')
-    with gz_header_free(npm) as gz, tarfile.open(fileobj=gz, mode='w') as tf:
-        tf.add(src, arcname='package')
+    if not update_only:
+        npm = os.path.join(DIST, f'{app_id}@{ver}.tgz')
+        with gz_header_free(npm) as gz, tarfile.open(fileobj=gz, mode='w') as tf:
+            tf.add(src, arcname='package')
     print(f'{app_id} {ver}: {os.path.relpath(bundle, ROOT)} ({os.path.getsize(bundle) // 1024} KiB), '
           f'{len(uidesc["containers"])} screens, states {state_ids}')
 
@@ -616,11 +621,14 @@ def main():
     parser.add_argument('--language', type=normalize_language, choices=languages(), default='en',
                         help='UI language; Korean also accepts ko-KR, ko-kr and ko_KR')
     parser.add_argument('--preview-only', action='store_true', help='stage an offline preview without BMW SDK or installable archives')
+    parser.add_argument('--update-only', action='store_true', help='Goku HUD payload; its installer reuses the SDK already on the owner\'s head unit')
     parser.add_argument('apps', nargs='*')
     args = parser.parse_args()
+    if args.update_only and (args.preview_only or args.apps != ['dragon_super']):
+        parser.error('--update-only requires exactly dragon_super, without --preview-only')
     ids = args.apps or sorted(d for d in os.listdir(APPS) if os.path.exists(os.path.join(APPS, d, 'app.json')))
     for i in ids:
-        build(i, args.language, preview_only=args.preview_only)
+        build(i, args.language, preview_only=args.preview_only, update_only=args.update_only)
 
 
 if __name__ == '__main__':
