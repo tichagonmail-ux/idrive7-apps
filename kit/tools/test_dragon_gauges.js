@@ -33,9 +33,9 @@ function inkCentre(args,w,h) {
  assert(last>=first,'label rendered no ink');return (first+last+1)/2;
 }
 let count=0;
-for(const [signal,max,step]of [['speed',330,30],['rpm',8000,1000]])for(const [w,h]of [[600,535],[300,268]]){
+for(const [signal,max,step]of [['speed',330,30],['rpm',8000,1000]])for(const [w,h]of [[600,535],[300,268]])for(const wideProbe of [false,true]){
  for(let value=0;value<=max;value+=step){
-  lines=[];texts=[];paint({signal,max,w,h},value,null,'D4');
+  lines=[];texts=[];paint({signal,max,w,h,wideProbe},value,null,'D4');
   const needle=lines.find(l=>l.args[5]==='#ffffff'&&Math.abs(l.args[4]-5*h/535)<1e-6);
   assert(needle,signal+' missing needle');const ny=needle.args[1];
   assert(Math.abs(ny-needle.args[3])<1e-6,'needle is not horizontal');

@@ -5,7 +5,8 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 APP=ROOT/'apps/dragon_super'
 PROFILE=json.loads((ROOT/'assets/goku-hud/g20-id7-display-profile.json').read_text())
-RECT=PROFILE['layout']
+PROBE=json.loads((ROOT/'assets/goku-hud/g20-id7-extent-test.json').read_text())
+RECT=dict(PROFILE['layout']);RECT.update(PROBE['layout'])
 OUT=APP/'hud/layouts'
 OUT.mkdir(parents=True,exist_ok=True)
 def text(id,x,y,w,h,value,font='db22',color='white'):
@@ -21,10 +22,10 @@ for mode in ['eco','comfort','sport']:
  dx,dy,dw,dh=RECT['display']
  def local(name):
   x,y,w,h=RECT[name];return [x-dx,y-dy,w,h]
- parts=[text('brand',*local('brand'),'M340i','db42'),text('form',*local('form'),'{{db:form}}','db22','fg')]
+ parts=[text('edge',700-dx,2-dy,520,20,'{{db:edge}}','db18','amber'),text('brand',*local('brand'),'M340i','db42'),text('form',*local('form'),'{{db:form}}','db22','fg')]
  for name,signal,maximum in [('speedGauge','speed',330),('rpmGauge','rpm',8000)]:
   x,y,w,h=local(name)
-  parts.append(dict(id=name.lower(),type='bmwgauge',x=x,y=y,w=w,h=h,signal=signal,max=maximum))
+  parts.append(dict(id=name.lower(),type='bmwgauge',x=x,y=y,w=w,h=h,signal=signal,max=maximum,wideProbe=True))
  bx,by,bw,bh=RECT['bottom']
  bottom=[]
  for i,(label,value) in enumerate([('OIL °C','{{oil}}'),('COOLANT °C','{{coolant}}'),('IAT °C','{{db:iat}}'),('BOOST bar','{{db:boost}}')]):
@@ -36,6 +37,14 @@ for mode in ['eco','comfort','sport']:
   effect('aura','gokuaura',*RECT['aura'],1),canvas('display',dx,dy,dw,dh,parts),
   effect('goku','gokucharacter',*RECT['goku'],4),canvas('mode',bx,by,bw,bh,bottom,5)]
  write('db_dash_'+mode,mode,widgets)
+ # A separate ruler-only view exposes the whole test surface without artwork.
+ labels=[text('title',560,35,800,32,'GOKU HUD 0.4.6 | SCREEN SIZE TEST','db22'),
+  text('size',600,76,720,28,'1920 x 660 | GRID 100 px','db22'),
+  text('legend',430,540,1060,24,'RED 20 | ORANGE 40 | CYAN 80 | GREEN 120','db18'),
+  text('native',540,630,840,24,'BMW STATUS ROW STARTS AT Y660','db22')]
+ for x in range(200,1920,200): labels.append(text('x'+str(x),x-65,250,130,26,'X'+str(x),'db18'))
+ for y in range(100,601,100): labels.append(text('y'+str(y),1535 if y==100 else 895,y-10,130,24,'Y'+str(y),'db18'))
+ write('db_probe_'+mode,mode,[effect('frame','gokumodebar',0,0,1920,660,0,background=True,keepInAlert=True),canvas('display',0,0,1920,660,labels)])
  centre=[effect('aura','gokuaura',354,50,380,360,1),effect('goku','gokucharacter',424,58,240,340,4),
   effect('modebar','gokumodebar',150,427,788,50,1),
   canvas('display',244,0,600,480,[text('brand',0,0,600,34,'M340i','db26'),text('form',0,35,600,28,'{{db:form}}','db18','fg'),
@@ -58,8 +67,8 @@ ca['widgets'][0].update(x=244,y=190,w=600,h=180)
 # The manifest owns the release version; rebaking must not downgrade it.
 spec=json.loads((APP/'app.json').read_text());spec.update(title='Goku HUD',description='Animated Goku drive-mode cluster and windshield HUD for BMW iDrive 7',iconGlyph='GOKU')
 spec['credits']['title']='Goku HUD';spec['screens'][0]['title']='Goku HUD';spec['config']['statusName']='Goku HUD'
-spec['settings']=[s for s in spec['settings'] if s['key'] not in ('clusterStyle','clusterFit','animationOn')]
-spec['settings'][1:1]=[dict(key='clusterStyle',label='Cluster design',type='choice',default='performance',reset=1,options=[['performance','Goku Performance (full cluster)'],['oem','BMW gauges + Goku (centre)']]),dict(key='animationOn',label='Character animation',type='bool',default=True)]
+spec['settings']=[s for s in spec['settings'] if s['key'] not in ('clusterStyle','clusterFit','animationOn','screenGuide')]
+spec['settings'][1:1]=[dict(key='screenGuide',label='Screen size test (0.4.6)',type='choice',default='overlay',options=[['overlay','Wide art + ruler'],['grid','Ruler only'],['off','Wide art only']]),dict(key='clusterStyle',label='Cluster design',type='choice',default='performance',reset=1,options=[['performance','Goku Performance (full cluster)'],['oem','BMW gauges + Goku (centre)']]),dict(key='animationOn',label='Character animation',type='bool',default=True)]
 for setting in spec['settings']:
  if setting['key']=='alertsOn': setting.update(label='Custom full-screen alerts',default=False,reset=1)
  if setting['key']=='alertPreview': setting.update(default='off',reset=1)

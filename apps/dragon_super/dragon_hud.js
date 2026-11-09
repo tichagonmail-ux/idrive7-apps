@@ -25,6 +25,7 @@ class DragonHud extends Base {
         if (t === 'db:form') return FORMS[this._driveProfile()];
         if (t === 'db:mode') return MODES[this._driveProfile()];
         if (t === 'db:title') return 'GOKU HUD';
+        if (t === 'db:edge') return this.setting('screenGuide') === 'off' ? '' : '0.4.6 | SCREEN SIZE TEST';
         if (t === 'db:boost') return Hud.prototype._token.call(this, 'boost');
         if (t === 'db:iat') { const v = this._raw('iat'); return Number.isFinite(v) ? v.toFixed(0) : '--'; }
         if (t === 'db:data') return this.car.data().demo ? 'DEMO' : Date.now() - this.car.lastCar >= 3000 ? 'NO VEHICLE DATA' : '';
@@ -53,6 +54,8 @@ class DragonHud extends Base {
             if (w.type === 'gokumodebar') {
                 this.client.uniform(ref, 'u_background', [w.background ? 1 : 0]);
                 this.client.uniform(ref, 'u_size', [w.w, w.h]);
+                this.client.uniform(ref, 'u_screenGuide', [w.background && this.setting('screenGuide') !== 'off' ? 1 : 0]);
+                this.client.uniform(ref, 'u_gridOnly', [w.background && this.setting('screenGuide') === 'grid' ? 1 : 0]);
             }
             x.gpuClock = this.client.animate(ref, { property: 'uniform', name: 'u_phase', keys: [[0, 0], [12000, 12]], loop: true });
         }
@@ -99,11 +102,14 @@ class DragonDash extends DragonHud {
     }
     _isCentre() { return this.setting('clusterStyle') !== 'performance'; }
     _layoutName() { return ['dash', 'both'].includes(this._screens()) ? this._driveProfile() : 'off'; }
-    _layoutFile(n) { const t = this._isCentre() ? 'centre' : 'dash'; return n === 'alert' ? 'db_' + t + '_alert' : 'db_' + t + '_' + n; }
+    _layoutFile(n) {
+        const t = this._isCentre() ? 'centre' : 'dash';
+        if (n !== 'alert' && t === 'dash' && this.setting('screenGuide') === 'grid') return 'db_probe_' + n;
+        return n === 'alert' ? 'db_' + t + '_alert' : 'db_' + t + '_' + n;
+    }
     _layerFields() {
         if (this.target === 'map') return { contend: 1, guide_hold: 0 };
-        // 0.4.5 places full-size artwork within the measured bezel envelope.
-        // Old saved 90/95% values must not rescale this new geometry.
+        // Native-pixel extent probe: saved percentage fit must not move the ruler.
         return {};
     }
     _popupSlot() { return 0x202; }

@@ -71,4 +71,19 @@ for mode in ['eco','comfort','sport']:
 contact=Image.new('RGB',(1280,1320),'black')
 for i,image in enumerate(outputs): contact.paste(image.convert('RGB').resize((1280,440),Image.Resampling.LANCZOS),(0,i*440))
 contact.save(ROOT/'apps/dragon_super/preview.png')
+probe_file=ROOT/'dist/goku-ruler-snapshot.json'
+if probe_file.exists():
+ probe=json.loads(probe_file.read_text())
+ ruler=Image.new('RGBA',(1920,660),'black')
+ for layer in sorted(probe['layers'],key=lambda l:l['z']):
+  part=effect(layer) if layer['kind']=='effect' else Image.frombytes('RGBA',(layer['iw'],layer['ih']),base64.b64decode(layer['rgba']))
+  ruler.alpha_composite(part,(layer['x'],layer['y']))
+ # Actual GLES output must retain native coordinates and the labelled colours.
+ for x,expected in [(20,(255,31,51)),(40,(255,153,13)),(80,(26,217,255)),(120,(77,255,102))]:
+  actual=ruler.getpixel((x,330))[:3]
+  assert max(abs(a-b) for a,b in zip(actual,expected))<=3,(x,actual)
+ frame=next(l for l in probe['layers'] if l['kind']=='effect')
+ clean=dict(frame,uniforms=dict(frame['uniforms'],u_screenGuide=[0],u_gridOnly=[0]))
+ assert effect(clean).getpixel((20,330))[:3]==(0,0,0),'turning off ruler left coloured guides'
+ ruler.convert('RGB').save(ROOT/'dist/goku-screen-ruler.png')
 print('PASS GLSL ES shaders compiled, linked and rendered in EGL '+str(a.value)+'.'+str(b.value)+'; three native Performance previews saved')

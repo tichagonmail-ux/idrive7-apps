@@ -12,16 +12,15 @@ function inkClearance(x,y) {
  }
  return inside?nearest:-nearest;
 }
-function assertPhotoBezel(layers) {
+// This build deliberately probes outside the old photo-safe envelope. Validate
+// the actual renderer surface, not an unconfirmed physical mask.
+function assertProbeBounds(layers) {
  for(const l of layers){
-  if(l.kind!=='image'||!l.rgba)continue;
-  assert.equal(l.w,l.iw,'bezel test requires native-size pixels');assert.equal(l.h,l.ih);
-  let nearest=Infinity;
-  for(let y=0;y<l.ih;y++)for(let x=0;x<l.iw;x++){
-   if(l.rgba[(y*l.iw+x)*4+3]<PROFILE.alphaThreshold)continue;
-   nearest=Math.min(nearest,inkClearance(l.x+x+.5,l.y+y+.5));
+  assert(l.x>=0&&l.y>=0&&l.x+l.w<=1920&&l.y+l.h<=660,'probe touched native BMW status row or escaped the panel');
+  if(l.kind==='image'){
+   assert.equal(l.w,l.iw,'ruler must use native pixels');assert.equal(l.h,l.ih);
+   if(l.rgba)assert.equal(l.rgba.length,l.iw*l.ih*4);
   }
-  assert(nearest>=PROFILE.minimumInkClearance,'opaque artwork crosses the photo-derived clearance envelope: '+nearest.toFixed(2)+' px');
  }
 }
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
@@ -120,6 +119,23 @@ hu.start();
  assert.deepEqual([full.x,full.y,full.w,full.h],[0,0,1920,660]);
  const gauges=dash.widgets.get('display').w.parts.filter(p=>p.type==='bmwgauge');
  assert.deepEqual(gauges.map(p=>p.signal),['speed','rpm'],'full design must redraw both side gauges');
+ assert.deepEqual(gauges.map(p=>[p.x+20,p.y,p.w,p.h,p.wideProbe]),[[20,80,600,535,true],[1300,80,600,535,true]],'extent probe did not spread the gauges at native size');
+ assert.equal(dash.client.layers.get(dash.widgets.get('frame').ref).uniforms.u_screenGuide[0],1);
+ hu.settings.set('screenGuide','off');
+ assert.equal(dash.client.layers.get(dash.widgets.get('frame').ref).uniforms.u_screenGuide[0],0);
+ hu.settings.set('screenGuide','grid');
+ assert(!dash.widgets.has('goku'),'ruler-only mode kept artwork over its coordinate labels');
+ assert(dash.widgets.get('display').w.parts.some(p=>p.text==='X1800'));
+ assertProbeBounds(Array.from(dash.client.layers.values()));
+ assert(!dash.client.refused.length,dash.client.refused.join());
+ assert(FakeClient.memory()<=16*1024*1024,'ruler-only mode exceeded memory');
+ const rulerParts=dash.widgets.get('display').w.parts;
+ for(let i=0;i<rulerParts.length;i++)for(let j=i+1;j<rulerParts.length;j++){
+  const a=rulerParts[i],b=rulerParts[j];
+  assert(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y,'ruler coordinate labels overlap: '+a.id+' / '+b.id);
+ }
+ if(process.env.GOKU_CAPTURE)fs.writeFileSync(path.join(ROOT,'dist/goku-ruler-snapshot.json'),JSON.stringify({layers:Array.from(dash.client.layers.values()).map(l=>Object.assign({},l,{rgba:l.rgba?l.rgba.toString('base64'):undefined}))}));
+ hu.settings.set('screenGuide','overlay');
  // Rectangle updates replace pixels; overlapping the dragon with a different
  // part would erase its head or leave fragments after a speed/gear change.
  const parts=dash.widgets.get('display').w.parts;
@@ -191,7 +207,7 @@ hu.start();
     assert(!instance.client.refused.length,instance.client.refused.join());
     assert(instance.client.layers.size<=8);
     if(instance===dash&&style==='performance')assert(Array.from(instance.client.layers.values()).every(l=>l.y+l.h<=660),'covered native BMW status strip');
-    if(instance===dash&&style==='performance')assertPhotoBezel(Array.from(instance.client.layers.values()));
+    if(instance===dash&&style==='performance')assertProbeBounds(Array.from(instance.client.layers.values()));
    }
    if(snapshots)snapshots.push({style,mode,pedal,dataState:'live',layers:Array.from(dash.client.layers.values()).map(l=>Object.assign({},l,{rgba:l.rgba?l.rgba.toString('base64'):undefined}))});
    for(const key of ['knock','heat','boost','fuel','afr','multi']){
@@ -211,7 +227,7 @@ hu.start();
  // healthy stream. This includes the real amber status text and -- readouts.
  if(snapshots)for(const mode of ['eco','comfort','sport']){
   hud.driveMode=mode;hud._rebuild();dash._rebuild();dash._tick();await wait(270);
-  assertPhotoBezel(Array.from(dash.client.layers.values()));
+  assertProbeBounds(Array.from(dash.client.layers.values()));
   snapshots.push({style:'performance',mode,pedal:0,dataState:'missing',layers:Array.from(dash.client.layers.values()).map(l=>Object.assign({},l,{rgba:l.rgba?l.rgba.toString('base64'):undefined}))});
  }
  // A panel yields all content to BMW popups, and restores it afterwards.
@@ -220,7 +236,8 @@ hu.start();
  if(snapshots)fs.writeFileSync(path.join(ROOT,'dist/goku-test-snapshots.json'),JSON.stringify(snapshots));
  hu.settings.set('screens','off');await wait(300);
  assert(instances.every(x=>x.activeName==='off'));
+ assert(instances.every(x=>x.client.layers.size===0),'Off left test layers on screen');
  assert(!messages.some(s=>/missing|unusable|failed|wrong|refused|no glyph/.test(s)),messages.join(' | '));
- console.log('PASS native-size photo-fit layout ignores legacy 90/95/100%, non-overlapping canvases, 660px cover, missing-data captures, alert migration, AFR regressions, modes, animation, reconnect, renderer budgets, BMW popup yield and Off');
+ console.log('PASS 0.4.6 native-pixel extent probe, overlay toggle and ruler-only view; layout ignores legacy 90/95/100%, non-overlapping canvases, 660px cover, missing-data captures, alert migration, AFR regressions, modes, animation, reconnect, renderer budgets, BMW popup yield and Off');
  process.exit(0);
 })().catch(e=>{console.error(e.stack,messages);process.exit(1)});

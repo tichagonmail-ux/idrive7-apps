@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "id": "g20-id7-extent-probe-v1",
+  "status": "EXPERIMENTAL screen extent test; not a confirmed visible mask",
+  "sourceProfile": "g20-id7-photo-v1",
+  "panel": [
+    1920,
+    720
+  ],
+  "appRegion": [
+    0,
+    0,
+    1920,
+    660
+  ],
+  "layout": {
+    "display": [
+      20,
+      0,
+      1880,
+      615
+    ],
+    "speedGauge": [
+      20,
+      80,
+      600,
+      535
+    ],
+    "rpmGauge": [
+      1300,
+      80,
+      600,
+      535
+    ]
+  },
+  "guide": {
+    "gridStep": 100,
+    "rectangles": [
+      {
+        "inset": 20,
+        "color": "red"
+      },
+      {
+        "inset": 40,
+        "color": "orange"
+      },
+      {
+        "inset": 80,
+        "color": "cyan"
+      },
+      {
+        "inset": 120,
+        "color": "green"
+      }
+    ],
+    "outerEdge": "magenta",
+    "origin": "panel top-left",
+    "bottom": "y=660, not the bottom of the 720px panel"
+  },
+  "notes": [
+    "Both gauges remain 600x535; moved 160px outward per side from 0.4.5.",
+    "Only the upper 250px of each guard/rail is bent inward by up to 120px to test the curved shoulders.",
+    "The ruler intentionally probes beyond the previous conservative safe envelope. Cropped guide segments are expected evidence, not a fitted-mask claim.",
+    "No final anime artwork or Dragon Balls in this quick sizing build.",
+    "No global percentage scaling. Native BMW row y>=660 remains reserved."
+  ]
+}

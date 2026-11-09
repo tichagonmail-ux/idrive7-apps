@@ -1,4 +1,4 @@
-# Goku HUD 0.4.5
+# Goku HUD 0.4.6 — screen extent test
 
 BMW iDrive 7 / rooted MGU app. Installed identity remains `dragon_super`, so this updates Dragon Ball Super in place. Original EVAHUD / cluster-render copyright and licence notices remain in LICENSE and NOTICE.
 
@@ -14,7 +14,33 @@ The charging stance starts at 25% pedal, holds above 15%, and returns to idle be
 
 The default cluster design, **Goku Performance (full cluster)**, uses the same whole-cluster `panel` target as the EVA full designs: a green dragon around the blue speed scale and a red scale guard around the RPM scale, with a larger Goku in the middle and a long symmetric pointed mode bar. Versions 0.4.1 and later reset the saved 0.4.0 centre-only default once, so existing installations receive the full design. Later manual selections remain saved. **BMW gauges + Goku (centre)** is the optional native `map` slot design under BMW content; it intentionally leaves the original side gauges in place. The full design's cover stops at y=660 of the 1920×720 panel, leaving the lower native status area, and uses the inherited popup-yield mechanism. The menu also offers Windshield HUD, Cluster + HUD and Off. Off releases all app layers. The y=660 cover comes from the earlier photograph measurement; physical bezel clearance, native fuel/status visibility and BMW warning/popup behavior still require parked-car verification.
 
-## 0.4.5: native-size layout within the photographed bezel
+
+## 0.4.6: quick sizing build, before the final anime redesign
+
+This build is for measuring the owner's actual visible screen. It uses the
+existing artwork, moves each 600×535 gauge 160 native pixels outward from
+0.4.5 (left x=20, right x=1300, y=80), and bends only the top 250 px of each
+ornament/rail inward by up to 120 px. Goku and the main fonts keep their size.
+The final anime/Shenron/Dragon Ball artwork has not been substituted yet.
+
+**Screen size test (0.4.6)** defaults to **Wide art + ruler**. Choose **Ruler only**
+for an unobstructed measurement photo, or **Wide art only** to hide the guides.
+The test applies to the full Performance cluster. It does not change the native
+BMW centre slot or windshield HUD. The grid is 100 px; border insets from the
+1920×660 application area are red 20, orange 40, cyan 80 and green 120 px. The
+outermost 2 px are magenta. The app still reserves native BMW pixels y≥660.
+The guide is drawn in the existing background effect: no extra renderer layer
+or image buffer. Ruler-only replaces the artwork with one native-size labelled
+canvas. Popup yielding and Mode > Off continue to release the display.
+
+These guides deliberately extend outside the old conservative photo-safe
+polygon. Clipped corners/lines are measurement evidence; this is not a claim
+that all 1920×660 pixels are visible. The original photo profile is retained.
+The separate `assets/goku-hud/g20-id7-extent-test.json` records this experiment.
+Take full-cluster photographs while parked, once in Ruler only and once in
+Wide art + ruler, with the native BMW bottom row and all physical edges visible.
+
+## 0.4.5 history: native-size layout within the photographed bezel
 
 The owner's G20 M340i photograph showed that a rectangular layer fitting the
 1920×720 panel could still lose the dragon's horns and the upper right guard

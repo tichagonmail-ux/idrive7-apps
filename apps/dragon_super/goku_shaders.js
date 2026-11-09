@@ -37,6 +37,8 @@ uniform float u_phase;
 uniform float u_charge;
 uniform float u_background;
 uniform vec2 u_size;
+uniform float u_screenGuide;
+uniform float u_gridOnly;
 void main() {
     vec2 p = v_uv;
     if (u_background > 0.5) {
@@ -58,6 +60,23 @@ void main() {
     float a = min(1.0, (core + glow) * gap * ends * pulse);
     if (p.y < 0.0 || p.y > 1.0) a = 0.0;
     vec3 c = mix(u_color, vec3(1.0), core * 0.65);
-    gl_FragColor = u_background > 0.5 ? vec4(c * a, 1.0) : vec4(c, a);
+    vec3 outColor = c * a;
+    if (u_background > 0.5 && u_screenGuide > 0.5) {
+        vec2 px = v_uv * u_size;
+        // The guide is panel-native and independent of every artwork canvas.
+        vec2 edge = min(px, u_size - px);
+        float dEdge = min(edge.x, edge.y);
+        vec2 cell = mod(px, 100.0);
+        float grid = 1.0 - smoothstep(0.7, 1.5, min(min(cell.x, 100.0-cell.x), min(cell.y, 100.0-cell.y)));
+        outColor = max(outColor, vec3(0.06 + 0.12 * grid));
+        if (u_gridOnly > 0.5) outColor = vec3(0.08 + 0.18 * grid);
+        // Rectangles inset 20 / 40 / 80 / 120 px from the 1920x660 app area.
+        if (abs(dEdge-20.0) < 1.5) outColor = vec3(1.0,0.12,0.20);
+        if (abs(dEdge-40.0) < 1.5) outColor = vec3(1.0,0.60,0.05);
+        if (abs(dEdge-80.0) < 1.5) outColor = vec3(0.1,0.85,1.0);
+        if (abs(dEdge-120.0) < 1.5) outColor = vec3(0.3,1.0,0.4);
+        if (dEdge < 2.0) outColor = vec3(1.0,0.2,1.0);
+    }
+    gl_FragColor = u_background > 0.5 ? vec4(outColor, 1.0) : vec4(c, a);
 }`;
 module.exports = { aura, modebar };
