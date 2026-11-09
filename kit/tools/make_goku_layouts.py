@@ -16,15 +16,15 @@ def write(name,mode,widgets):
  (OUT/(name+'.json')).write_text(json.dumps(dict(schemaVersion=2,name='Goku HUD '+mode,theme='db_'+mode,widgets=widgets),indent=2))
 for mode in ['eco','comfort','sport']:
  parts=[text('brand',600,0,600,48,'M340i','db42'),text('form',600,48,600,30,'{{db:form}}','db22','fg'),
-  dict(id='speedgauge',type='bmwgauge',x=0,y=80,w=600,h=455,signal='speed',max=330),
-  dict(id='rpmgauge',type='bmwgauge',x=1200,y=80,w=600,h=455,signal='rpm',max=8000)]
+  dict(id='speedgauge',type='bmwgauge',x=0,y=0,w=600,h=535,signal='speed',max=330),
+  dict(id='rpmgauge',type='bmwgauge',x=1200,y=0,w=600,h=535,signal='rpm',max=8000)]
  for i,(label,value) in enumerate([('OIL °C','{{oil}}'),('COOLANT °C','{{coolant}}'),('IAT °C','{{db:iat}}'),('BOOST bar','{{db:boost}}')]):
   x=470+i*215
-  parts.extend([text('label'+str(i),x,534,215,23,label,'db18','fg'),text('val'+str(i),x,560,215,30,value,'db26')])
- widgets=[effect('frame','gokumodebar',0,0,1920,640,0,background=True,keepInAlert=True),
+  parts.extend([text('label'+str(i),x,536,215,23,label,'db18','fg'),text('val'+str(i),x,560,215,30,value,'db26')])
+ widgets=[effect('frame','gokumodebar',0,0,1920,660,0,background=True,keepInAlert=True),
   effect('aura','gokuaura',700,66,520,474,1),canvas('display',60,0,1800,590,parts),
   effect('goku','gokucharacter',800,80,320,450,4),
-  canvas('mode',400,590,1120,42,[text('mode',310,0,500,42,'{{db:mode}}','db32','white'),text('data',0,9,280,26,'{{db:data}}','db18','amber')],5)]
+  canvas('mode',400,604,1120,42,[text('mode',310,0,500,42,'{{db:mode}}','db32','white'),text('data',0,9,280,26,'{{db:data}}','db18','amber')],5)]
  write('db_dash_'+mode,mode,widgets)
  centre=[effect('aura','gokuaura',354,50,380,360,1),effect('goku','gokucharacter',424,58,240,340,4),
   effect('modebar','gokumodebar',150,427,788,50,1),
@@ -45,7 +45,8 @@ alert['title'].update(x=660,y=100)
 ca=json.loads(json.dumps(alert));ca['title'].update(x=244,y=70,w=600,h=100)
 ca['widgets'][0].update(x=244,y=190,w=600,h=180)
 (OUT/'db_centre_alert.json').write_text(json.dumps(ca,indent=2))
-spec=json.loads((APP/'app.json').read_text());spec.update(title='Goku HUD',version='0.4.2',description='Animated Goku drive-mode cluster and windshield HUD for BMW iDrive 7',iconGlyph='GOKU')
+# The manifest owns the release version; rebaking must not downgrade it.
+spec=json.loads((APP/'app.json').read_text());spec.update(title='Goku HUD',description='Animated Goku drive-mode cluster and windshield HUD for BMW iDrive 7',iconGlyph='GOKU')
 spec['credits']['title']='Goku HUD';spec['screens'][0]['title']='Goku HUD';spec['config']['statusName']='Goku HUD'
 spec['settings']=[s for s in spec['settings'] if s['key'] not in ('clusterStyle','clusterFit','animationOn')]
 spec['settings'][1:1]=[dict(key='clusterStyle',label='Cluster design',type='choice',default='performance',reset=1,options=[['performance','Goku Performance (full cluster)'],['oem','BMW gauges + Goku (centre)']]),dict(key='animationOn',label='Character animation',type='bool',default=True)]

@@ -60,7 +60,7 @@ rows=json.loads((ROOT/'dist/goku-test-snapshots.json').read_text())
 outputs=[]
 for mode in ['eco','comfort','sport']:
  row=next(r for r in rows if r['style']=='performance' and r['mode']==mode and r['pedal']==85)
- image=Image.new('RGBA',(1920,640),'black')
+ image=Image.new('RGBA',(1920,660),'black')
  for layer in sorted(row['layers'],key=lambda l:l['z']):
   if not layer.get('visible',1): continue
   if layer['kind']=='effect': part=effect(layer)
@@ -68,7 +68,7 @@ for mode in ['eco','comfort','sport']:
   if part.size!=(layer['w'],layer['h']): part=part.resize((layer['w'],layer['h']),Image.Resampling.BILINEAR)
   image.alpha_composite(part,(layer['x'],layer['y']))
  target=ROOT/('dist/goku-'+mode+'.png');image.convert('RGB').save(target);outputs.append(image)
-contact=Image.new('RGB',(1280,1281),'black')
-for i,image in enumerate(outputs): contact.paste(image.convert('RGB').resize((1280,427),Image.Resampling.LANCZOS),(0,i*427))
+contact=Image.new('RGB',(1280,1320),'black')
+for i,image in enumerate(outputs): contact.paste(image.convert('RGB').resize((1280,440),Image.Resampling.LANCZOS),(0,i*440))
 contact.save(ROOT/'apps/dragon_super/preview.png')
 print('PASS GLSL ES shaders compiled, linked and rendered in EGL '+str(a.value)+'.'+str(b.value)+'; three native Performance previews saved')

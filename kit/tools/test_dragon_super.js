@@ -78,7 +78,7 @@ hu.start();
  await wait(900);
  assert.equal(instances.length,2);
  const [hud,dash]=instances;
- assert.equal(hu.spec.version,'0.4.2','test requires a current staged build');
+ assert.equal(hu.spec.version,JSON.parse(fs.readFileSync(path.join(ROOT,'apps/dragon_super/app.json'))).version,'test requires a current staged build');
  assert.equal(hu.settings.get('alertsOn'),false,'unvalidated custom alerts remained enabled after update');
  assert.equal(hu.settings.get('alertPreview'),'off','old preview selection was not cleared');
  assert.equal(hu.settings.get('clusterStyle'),'performance','saved 0.4.0 centre default was not migrated');
@@ -94,9 +94,16 @@ hu.start();
  hu.settings.set('clusterStyle','performance');
  assert.equal(dash.target,'panel');assert.deepEqual(dash.size,[1920,720]);
  const full=dash.widgets.get('frame').w;
- assert.deepEqual([full.x,full.y,full.w,full.h],[0,0,1920,640]);
+ assert.deepEqual([full.x,full.y,full.w,full.h],[0,0,1920,660]);
  const gauges=dash.widgets.get('display').w.parts.filter(p=>p.type==='bmwgauge');
  assert.deepEqual(gauges.map(p=>p.signal),['speed','rpm'],'full design must redraw both side gauges');
+ // Rectangle updates replace pixels; overlapping the dragon with a different
+ // part would erase its head or leave fragments after a speed/gear change.
+ const parts=dash.widgets.get('display').w.parts;
+ for(let i=0;i<parts.length;i++)for(let j=i+1;j<parts.length;j++){
+  const a=parts[i],b=parts[j];
+  assert(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y,'overlapping display parts: '+a.id+' / '+b.id);
+ }
  for(const fit of [95,90,100]){
   hu.settings.set('clusterFit',String(fit));
   const widget=dash.widgets.get('goku'),layer=dash.client.layers.get(widget.ref),s=fit/100;
@@ -104,10 +111,12 @@ hu.start();
   assert.equal(layer.w,Math.round(320*s));
   assert.equal(layer.x,Math.round(960+(800-960)*s));
   const frame=dash.client.layers.get(dash.widgets.get('frame').ref);
-  assert.deepEqual([frame.x,frame.y,frame.w,frame.h],[0,0,1920,640],'background must still cover the original gauges');
-  assert.deepEqual(frame.uniforms.u_fit,[s],'mode bar fit differs from the rest of the layout');
+  assert.deepEqual([frame.x,frame.y,frame.w,frame.h],[0,0,1920,660],'background must still cover the original gauges');
+  assert.deepEqual(frame.uniforms.u_size,[1920,660],'mode bar must use panel coordinates');
+  const lower=dash.client.layers.get(dash.widgets.get('mode').ref);
+  assert.deepEqual([lower.x,lower.y,lower.w,lower.h],[400,604,1120,42],'lower mode strip retreated with upper content fit');
   for(const l of dash.client.layers.values()){
-   if(l===frame)continue;
+   if(l===frame||l===lower)continue;
    assert(l.x>=Math.round(960*(1-s))-1&&l.x+l.w<=1920-Math.round(960*(1-s))+1);
    assert(l.y>=Math.round(320*(1-s))-1&&l.y+l.h<=640-Math.round(320*(1-s))+1);
   }
@@ -160,7 +169,7 @@ hu.start();
     const writes=instance.client.writes;instance._update(widget,Date.now(),false);assert.equal(instance.client.writes,writes,'unchanged pose uploaded pixels');
     assert(!instance.client.refused.length,instance.client.refused.join());
     assert(instance.client.layers.size<=8);
-    if(instance===dash&&style==='performance')assert(Array.from(instance.client.layers.values()).every(l=>l.y+l.h<=640),'covered native BMW status strip');
+    if(instance===dash&&style==='performance')assert(Array.from(instance.client.layers.values()).every(l=>l.y+l.h<=660),'covered native BMW status strip');
    }
    if(snapshots)snapshots.push({style,mode,pedal,layers:Array.from(dash.client.layers.values()).map(l=>Object.assign({},l,{rgba:l.rgba?l.rgba.toString('base64'):undefined}))});
    for(const key of ['knock','heat','boost','fuel','afr','multi']){
@@ -183,6 +192,6 @@ hu.start();
  hu.settings.set('screens','off');await wait(300);
  assert(instances.every(x=>x.activeName==='off'));
  assert(!messages.some(s=>/missing|unusable|failed|wrong|refused|no glyph/.test(s)),messages.join(' | '));
- console.log('PASS fitted panel at 90/95/100% with full background, custom alert defaults migrated Off, AFR transient/14.5 regression, saved layout migration, FES modes, animations, reconnect, alert budgets, BMW popup priority and Off');
+ console.log('PASS dragon guards share non-overlapping gauge rectangles, fitted panel at 90/95/100%, 660px cover and fixed lower strip, custom alert defaults migrated Off, AFR transient/14.5 regression, saved layout migration, FES modes, animations, reconnect, alert budgets, BMW popup priority and Off');
  process.exit(0);
 })().catch(e=>{console.error(e.stack,messages);process.exit(1)});

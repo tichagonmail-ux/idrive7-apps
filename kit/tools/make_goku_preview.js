@@ -26,7 +26,7 @@ function effect(c,l){
  for(const [n,v]of Object.entries(l.uniforms||{}))uniform(n,v);
  return {gl,draw:t=>{uniform('u_phase',[t%12]);uniform('u_charge',[pedal/100]);gl.drawArrays(gl.TRIANGLES,0,6);}};
 }
-function resize(){const w=style==='performance'?1920:1088,h=style==='performance'?640:480;viewport.style.aspectRatio=w+'/'+h;stage.style.width=w+'px';stage.style.height=h+'px';stage.style.transform='scale('+(viewport.clientWidth/w)+')';}
+function resize(){const w=style==='performance'?1920:1088,h=style==='performance'?660:480;viewport.style.aspectRatio=w+'/'+h;stage.style.width=w+'px';stage.style.height=h+'px';stage.style.transform='scale('+(viewport.clientWidth/w)+')';}
 function render(){
  const stance=pedal>=25?85:0,key=mode+style+stance;
  if(key===rendered)return;

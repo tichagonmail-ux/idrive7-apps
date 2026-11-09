@@ -27,5 +27,22 @@ const modes = ['eco', 'comfort', 'sport'], stances = ['idle', 'charge'];
             await sharp(bg).composite([{ input: face, left: 12, top: 18 }]).png().toFile(path.join(APP, 'icon.png'));
         }
     }
-    console.log('PASS six alpha poses in three target sizes, Goku app icon');
+    // The same guard pixels are painted inside the existing gauge rectangles.
+    // Do not allocate another renderer layer: three alert layers must still fit.
+    const guards = path.join(ROOT, 'assets/goku-hud/dragon-guards.png');
+    const gm = await sharp(guards).metadata();
+    if (!gm.hasAlpha || gm.width !== 2172 || gm.height !== 724) throw Error('Expected the original 2172x724 alpha dragon guards');
+    const gauges = path.join(APP, 'hud/gauges'); fs.mkdirSync(gauges, { recursive: true });
+    for (const side of ['green', 'red']) {
+        const left = side === 'green' ? 0 : gm.width - 500;
+        // Register the artwork's bend to the dial elbow at y=313. The bottom
+        // section ends at y=535; the head keeps its own space above the scale.
+        const upper = await sharp(guards).extract({ left, top: 0, width: 500, height: 350 }).resize(300, 313, { fit: 'fill' }).png().toBuffer();
+        const lower = await sharp(guards).extract({ left, top: 350, width: 500, height: 374 }).resize(300, 222, { fit: 'fill' }).png().toBuffer();
+        const x = side === 'green' ? 0 : 300;
+        const rgba = await sharp({ create: { width: 600, height: 535, channels: 4, background: '#00000000' } })
+            .composite([{ input: upper, left: x, top: 0 }, { input: lower, left: x, top: 313 }]).raw().toBuffer();
+        fs.writeFileSync(path.join(gauges, side + '.json'), JSON.stringify({ w: 600, h: 535, rgba: rgba.toString('base64') }));
+    }
+    console.log('PASS six alpha poses in three target sizes, Goku app icon and both alpha dragon guards');
 })().catch(e => { console.error(e); process.exit(1); });

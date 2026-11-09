@@ -52,7 +52,7 @@ class DragonHud extends Base {
             this.client.uniform(ref, 'u_color', animation.COLORS[this._driveProfile()].map(v => v / 255));
             if (w.type === 'gokumodebar') {
                 this.client.uniform(ref, 'u_background', [w.background ? 1 : 0]);
-                this.client.uniform(ref, 'u_fit', [this._panelFit()]);
+                this.client.uniform(ref, 'u_size', [w.w, w.h]);
             }
             x.gpuClock = this.client.animate(ref, { property: 'uniform', name: 'u_phase', keys: [[0, 0], [12000, 12]], loop: true });
         }
@@ -114,7 +114,9 @@ class DragonDash extends DragonHud {
         // Keep the full black background. Fit content inside it rather than
         // exposing the original BMW gauges outside a smaller background.
         // iw/ih stay at the source resolution, so pixel uploads remain valid.
-        if (!w || w.id === 'frame') return {};
+        // The lower cover and mode strip must not retreat with Cluster fit.
+        // Fit only the upper gauges/character; anchor this strip to the panel.
+        if (!w || w.id === 'frame' || w.id === 'mode') return {};
         return { x: Math.round(960 + (w.x - 960) * fit), y: Math.round(320 + (w.y - 320) * fit),
             w: Math.round(w.w * fit), h: Math.round(w.h * fit), sampling: 'bilinear' };
     }
