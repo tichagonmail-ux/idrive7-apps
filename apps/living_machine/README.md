@@ -1,9 +1,16 @@
-# Living Machine HUD 0.1.1
+# Living Machine HUD 0.1.2
 
 A custom/fan-made BMW M340i G20 cockpit study. This is a separate application,
 ID `living_machine`; Goku HUD remains `dragon_super` 0.4.6 with unchanged files.
 The real owner-car photographs and `g20-id7-master-v2` are the design references.
 BMW has not endorsed this software.
+
+## 0.1.2 startup fix
+
+Fixes the photographed `Blocked: Cannot inspect installed app oap_12201` failure.
+Per-app access restrictions no longer prevent Living Machine from creating its
+renderer layers. Confirmed active Goku modes still block; unreadable state is
+reported as a limited check. The visual design/resources remain unchanged.
 
 ## What this prototype does
 
@@ -37,12 +44,12 @@ Preferred: install through the existing MGU Store GitHub source.
 
 1. Upload `apps/living_machine/` to the root of `tichagonmail-ux/idrive7-apps` on `main`.
 2. In the car's Store, use that GitHub source on the `main` branch and choose **Check now**.
-3. Choose **Living Machine HUD 0.1.1** and **Install**.
+3. Choose **Living Machine HUD 0.1.2** and **Install**.
 
 The live repository's `mgu-repo.json` already discovers `apps/*` automatically;
 Living Machine is not excluded. No catalog or Goku file change is required.
 The Store supplies the donor SDK and runs `python kit/tools/build.py living_machine`
-on the head unit, then installs `dist/living_machine@0.1.1.tgz`.
+on the head unit, then installs `dist/living_machine@0.1.2.tgz`.
 All assets/fonts/shaders are in the committed `resources.pack`, so this build
 needs no Pillow, rebaking, separate art files, network downloads or user SSH command.
 This source upload contains no BMW SDK.
@@ -64,7 +71,7 @@ No renderer upgrade, coding, flashing or vehicle control is performed.
 
 ## Desktop preview and reproducible checks
 
-Open `Living-Machine-0.1.1-preview.html` locally in a WebGL-capable desktop browser.
+Open `Living-Machine-0.1.2-preview.html` locally in a WebGL-capable desktop browser.
 It is self-contained, with speed/RPM/pedal sliders, gear 1–8, all modes, animation
 switches and an unavailable-data switch. It uses the same state model, layout
 coordinates, shaders, wheel metadata and image assets as the native app. Browser
@@ -108,11 +115,13 @@ during a steady value. No guessed gear, invented boost/efficiency figure or
 live-mode simulated number is substituted. A missing drive mode falls back to
 the Comfort design; confirm the FES getter on the car.
 
-Goku protection is a read-only persisted-settings preflight and a one-second
-recheck. Unreadable state blocks Living Machine. It is **not an atomic lock in
-legacy Goku**: turning Goku on after this app starts can briefly contend before
-Living Machine releases. Always keep only one full-cluster app enabled. It
-never changes Goku settings or stops another process.
+The Goku check is best-effort and read-only, repeated once per second. A
+readable, confirmed active Goku mode blocks drawing. Unreadable unrelated
+apps, private Goku settings or an inaccessible app directory do not establish
+an active Goku session; those cases allow drawing and show a limited-check
+notice in Status. Keep Goku and other full-cluster apps Off manually.
+This is **not an atomic lock in legacy Goku**. The check never changes another
+app's files/permissions/settings or stops another process.
 
 Popup yielding reuses the existing log watcher; an unreadable/incomplete log
 cannot establish that every BMW Check Control warning will be visible. A crash

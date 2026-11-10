@@ -11,8 +11,8 @@ class LivingApp{
     constructor(ctx,deps){
         deps=deps||{};this.ctx=ctx;this.client=deps.client||new ClusterRender(ctx.spec.id,process.env.HUD_CLUSTER_SOCKET||DEFAULT_PATH);
         this.signals=deps.signals||new Signals(ctx);this.popups=deps.popups||new PopupWatch({log:ctx.log});
-        this.checkConflict=deps.conflict||(()=>Coexistence.conflict());
-        this.engine=new Model.Engine();this.refs={};this.assets={};this.failure=null;this.mode=null;this.lastTextAt=0;this.lastConflictAt=-1e9;this.conflict=null;this.lastStatus=null;this.started=false;
+        this.checkConflict=deps.conflict||(()=>Coexistence.inspect());
+        this.engine=new Model.Engine();this.refs={};this.assets={};this.failure=null;this.mode=null;this.lastTextAt=0;this.lastConflictAt=-1e9;this.conflict=null;this.coexistenceWarning=null;this.lastStatus=null;this.started=false;
         this.client.on('ready',()=>{this.failure=null;this.drop();this.safeTick(Date.now());});
         this.client.on('refused',(op,ref,reason)=>{if(this.client.layers.has(ref)){this.failure='Renderer refused '+op+': '+reason;this.drop();this.status(this.failure);}});
         this.client.on('disconnected',()=>this.status('Renderer disconnected — waiting to reconnect'));
@@ -83,7 +83,14 @@ class LivingApp{
         if(this.setting('screens')!=='panel'){
             if(this.client.layers.size)this.drop();this.status('Off — BMW instrument cluster');return;
         }
-        if(now-this.lastConflictAt>1000){this.conflict=this.checkConflict();this.lastConflictAt=now;}
+        if(now-this.lastConflictAt>1000){
+            const result=this.checkConflict();
+            const detail=result&&typeof result==='object'?result:{conflict:result,warning:null};
+            this.conflict=detail.conflict||null;
+            const warning=detail.warning||null;
+            if(warning!==this.coexistenceWarning&&warning)this.ctx.log.warn(warning);
+            this.coexistenceWarning=warning;this.lastConflictAt=now;
+        }
         if(this.conflict){if(this.client.layers.size)this.drop();this.status('Blocked: '+this.conflict);return;}
         if(this.failure){this.status(this.failure);return;}
         if(!this.client.ready){this.status('Connecting to cluster-render');return;}
@@ -116,7 +123,7 @@ class LivingApp{
         uniform(car,'u_exhaust',state.exhaust);uniform(car,'u_squat',state.squat);
         if(now-this.lastTextAt>=160){this.makeText(state);this.lastTextAt=now;}
         const extra=this.setting('diagnostics')?' | layers '+this.client.layers.size+' | signals '+Object.keys(input).join(','):'';
-        this.status('Living Machine / '+state.mode.toUpperCase()+' / '+state.status+extra);
+        this.status('Living Machine / '+state.mode.toUpperCase()+' / '+state.status+(this.coexistenceWarning?' / '+this.coexistenceWarning:'')+extra);
     }
 }
 module.exports={LivingApp};

@@ -2,7 +2,7 @@
   "id": "living_machine",
   "title": "Living Machine HUD",
   "description": "Custom BMW M340i OEM+ cockpit using the owner vehicle; 2.5D animated visual study",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "vendor": "custom",
   "loggingId": "OALM",
   "iconGlyph": "M340",
