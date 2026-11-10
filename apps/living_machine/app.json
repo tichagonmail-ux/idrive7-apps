@@ -1,0 +1,184 @@
+{
+  "id": "living_machine",
+  "title": "Living Machine HUD",
+  "description": "Custom BMW M340i OEM+ cockpit using the owner vehicle; 2.5D animated visual study",
+  "version": "0.1.1",
+  "vendor": "custom",
+  "loggingId": "OALM",
+  "iconGlyph": "M340",
+  "credits": {
+    "title": "Living Machine HUD",
+    "text": "Custom fan-made UI. BMW has not endorsed this app. Renderer client: Robert Nisipeanu (MPL-2.0); popup watch: EVAHUD contributors (MIT)."
+  },
+  "signals": {
+    "de.bmw.infotainment.vehicle.CDS": {
+      "statusEngineSpeed2": "rs",
+      "statusEngineTemperature": "rs"
+    },
+    "de.bmw.infotainment.vehicle.Vehicle2": {
+      "statusCarSpeed2": "rs"
+    },
+    "de.bmw.infotainment.drivingexcitement.FES": {
+      "statusSwitchDriveDynamicSport2": "rs",
+      "statusActualValueTorque2": "rs",
+      "statusFESVehicleDynamicSwitchHMI": "rs"
+    },
+    "de.bmw.infrastructure.VehicleInformation": {
+      "statusGearboxDrive": "s",
+      "DataPowerTrain2": "s"
+    },
+    "de.bmw.powertrain.AcceleratorPedal": {
+      "AngleAcceleratorPedal": "s"
+    }
+  },
+  "screens": [
+    {
+      "name": "MAIN",
+      "kind": "menu",
+      "title": "Living Machine HUD",
+      "settings": true,
+      "items": [
+        [
+          "text",
+          "STATUS",
+          "Off \u2014 BMW instrument cluster"
+        ]
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "key": "screens",
+      "label": "Mode",
+      "type": "choice",
+      "default": "off",
+      "options": [
+        [
+          "off",
+          "Off"
+        ],
+        [
+          "panel",
+          "Instrument cluster"
+        ]
+      ]
+    },
+    {
+      "key": "driveMode",
+      "label": "Drive mode design",
+      "type": "choice",
+      "default": "auto",
+      "options": [
+        [
+          "auto",
+          "Follow vehicle"
+        ],
+        [
+          "eco",
+          "ECO PRO preview design"
+        ],
+        [
+          "comfort",
+          "COMFORT preview design"
+        ],
+        [
+          "sport",
+          "SPORT+ preview design"
+        ]
+      ]
+    },
+    {
+      "key": "animation",
+      "label": "Vehicle animation",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "key": "wheels",
+      "label": "Wheel animation (visual tyre size)",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "key": "exhaust",
+      "label": "Simulated exhaust FX",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "comfortExhaust",
+      "label": "Allow subtle simulated exhaust in Comfort",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "intensity",
+      "label": "Animation intensity",
+      "type": "number",
+      "default": 65,
+      "steps": [
+        0,
+        25,
+        50,
+        65,
+        75,
+        100
+      ],
+      "unit": "%"
+    },
+    {
+      "key": "lowEffects",
+      "label": "Low effect mode",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "measurement",
+      "label": "Screen measurement overlay",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "diagnostics",
+      "label": "Diagnostic status details",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "key": "redline",
+      "label": "Visual shift light threshold (verify on car)",
+      "type": "number",
+      "default": 7000,
+      "steps": [
+        5500,
+        6000,
+        6500,
+        7000,
+        7500,
+        8000
+      ],
+      "unit": "rpm"
+    },
+    {
+      "key": "demo",
+      "label": "Demo simulation (labelled on screen)",
+      "type": "choice",
+      "default": "off",
+      "options": [
+        [
+          "off",
+          "Off \u2014 vehicle signals"
+        ],
+        [
+          "on",
+          "On \u2014 SIMULATION"
+        ]
+      ]
+    }
+  ],
+  "config": {
+    "target": "panel",
+    "dataFreshMs": 3000,
+    "masterTemplate": "g20-id7-master-v2"
+  }
+}
