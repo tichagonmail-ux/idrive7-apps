@@ -6,18 +6,19 @@ const {TextCanvas}=require('./eva_canvas');
 const {Canvas}=require('./kit/canvas');
 const Model=require('./living_model'),Text=require('./living_text'),Signals=require('./living_signals'),Coexistence=require('./living_coexistence');
 const db=require('./kit/pack').open(path.join(__dirname,'resources'));
-const Typography=require('./living_typography');
+const Typography=require('./living_typography'),Atlas=require('./living_atlas');
 class LivingApp{
     constructor(ctx,deps){
         deps=deps||{};this.ctx=ctx;this.client=deps.client||new ClusterRender(ctx.spec.id,process.env.HUD_CLUSTER_SOCKET||DEFAULT_PATH);
         this.signals=deps.signals||new Signals(ctx);this.popups=deps.popups||new PopupWatch({log:ctx.log});
         this.checkConflict=deps.conflict||(()=>Coexistence.inspect());
-        this.engine=new Model.Engine();this.refs={};this.assets={};this.failure=null;this.mode=null;this.lastTextAt=0;this.lastConflictAt=-1e9;this.conflict=null;this.coexistenceWarning=null;this.lastStatus=null;this.started=false;
-        this.client.on('ready',()=>{this.failure=null;this.drop();this.safeTick(Date.now());});
-        this.client.on('refused',(op,ref,reason)=>{if(this.client.layers.has(ref)){this.failure='Renderer refused '+op+': '+reason;this.drop();this.status(this.failure);}});
+        this.profile=0;this.profileNames=['normal','low-memory'];this.engine=new Model.Engine();this.refs={};this.assets={};this.failure=null;this.mode=null;this.lastTextAt=0;this.lastConflictAt=-1e9;this.conflict=null;this.coexistenceWarning=null;this.lastStatus=null;this.started=false;
+        this.client.on('ready',()=>{this.failure=null;this.profile=0;this.drop();this.safeTick(Date.now());});
+        this.client.on('refused',(op,ref,reason)=>this.refused(op,ref,reason));
+        this.client.on('layer',(ref,state,reason)=>{if(state==='error')this.refused('layer',ref,reason);});
         this.client.on('disconnected',()=>this.status('Renderer disconnected — waiting to reconnect'));
         ctx.settings.onChange(key=>{
-            if(key==='screens'){this.failure=null;this.lastConflictAt=-1e9;}
+            if(key==='screens'){this.failure=null;this.profile=0;this.lastConflictAt=-1e9;}
             this.drop();this.safeTick(Date.now());
         });
     }
@@ -42,8 +43,15 @@ class LivingApp{
         all.forEach(ref=>this.client.drop(ref));this.refs={};this.assets={};this.mode=null;this.textCanvas=null;this.hidden=false;
     }
     stop(){clearInterval(this.timer);this.drop();this.client.close();this.signals.close();this.started=false;}
+    refused(op,ref,reason){
+        const layer=this.client.layers.get(ref);if(!layer)return;
+        const memory=(layer.kind==='asset'||layer.kind==='image')&&/pixel|memory|budget|alloc|capacity|out.of/i.test(String(reason));
+        this.drop();
+        if(memory&&this.profile===0){this.profile=1;this.failure=null;this.status('Retrying with low-memory textures');return;}
+        this.failure='Renderer refused '+op+': '+reason;this.status(this.failure);
+    }
     makeAsset(name){
-        const image=db.json(name+'.json'),pixels=Buffer.from(image.rgba||'','base64');
+        const image=db.json(name+(this.profile?'-low':'')+'.json'),pixels=Buffer.from(image.rgba||'','base64');
         if(!image.w||pixels.length!==image.w*image.h*4)throw Error('Invalid '+name+' texture');
         const ref=this.client.asset({target:'panel',format:'rgba8',w:image.w,h:image.h,sampling:'bilinear'});
         if(!ref)throw Error('Renderer cannot allocate '+name+' asset');
@@ -62,22 +70,29 @@ class LivingApp{
         const car=this.refs.car;this.client.bind(car,'u_car',this.assets.body);this.client.bind(car,'u_wheels',this.assets.wheels);
         for(const [key,value] of [['u_frontCentre',metadata.front.centre],['u_rearCentre',metadata.rear.centre],
             ['u_frontRadius',metadata.front.radius],['u_rearRadius',metadata.rear.radius],['u_pipeA',metadata.pipes[0]],['u_pipeB',metadata.pipes[1]]])this.client.uniform(car,key,value);
-        this.refs.text=this.client.image({target:'panel',klass:'content',z:5,x:0,y:0,w:1920,h:660,iw:1920,ih:660});
-        if(!this.refs.text)throw Error('Renderer cannot allocate text canvas');
+        this.atlas=Atlas.layout(Text.items(state));
+        this.assets.text=this.client.asset({target:'panel',format:'rgba8',w:this.atlas.w,h:this.atlas.h,sampling:'nearest'});
+        if(!this.assets.text)throw Error('Renderer cannot allocate text atlas');
+        this.client.pixels(this.assets.text,null,Buffer.alloc(this.atlas.w*this.atlas.h*4));
         this.makeText(state,true);
     }
     makeText(state,force){
         const items=Text.items(state);
         if(!this.textCanvas||this.mode!==state.mode){
             this.mode=state.mode;
-            this.client.pixels(this.refs.text,null,Buffer.alloc(1920*660*4));
-            this.textCanvas=new TextCanvas(items,{
+            if(this.refs.text)this.client.drop(this.refs.text);
+            this.refs.text=this.client.effect({target:'panel',klass:'content',z:5,x:0,y:0,w:1920,h:660,fs:Atlas.shader(items,this.atlas)});
+            if(!this.refs.text)throw Error('Renderer cannot allocate text effect');
+            this.client.bind(this.refs.text,'u_text',this.assets.text);
+            this.client.pixels(this.assets.text,null,Buffer.alloc(this.atlas.w*this.atlas.h*4));
+            const parts=items.map(p=>Object.assign({},p,this.atlas.slots[p.id]));
+            this.textCanvas=new TextCanvas(parts,{
                 key:p=>{const item=this.currentText.find(v=>v.id===p.id)||p;return JSON.stringify([item.text,item.colour,item.size]);},
                 paint:(p,look)=>{const value=JSON.parse(look),cv=new Canvas(p.w,p.h);Typography.paint(cv,value[0],p.w/2,p.h*.80,value[2],value[1],p.font);return Buffer.from(cv.d);},
                 onError:(p,e)=>{throw Error('Text '+p.id+': '+e.message);},rateMs:160});
         }
         this.currentText=items;
-        for(const update of this.textCanvas.updates(Date.now(),force))this.client.pixels(this.refs.text,[update.rect],update.px);
+        for(const update of this.textCanvas.updates(Date.now(),force))this.client.pixels(this.assets.text,[update.rect],update.px);
     }
     tick(now){
         if(this.setting('screens')!=='panel'){
@@ -122,7 +137,7 @@ class LivingApp{
         uniform(car,'u_wheelAngles',[state.frontAngle,state.rearAngle]);uniform(car,'u_wheelEnabled',state.wheelEnabled?1:0);
         uniform(car,'u_exhaust',state.exhaust);uniform(car,'u_squat',state.squat);
         if(now-this.lastTextAt>=160){this.makeText(state);this.lastTextAt=now;}
-        const extra=this.setting('diagnostics')?' | layers '+this.client.layers.size+' | signals '+Object.keys(input).join(','):'';
+        const extra=this.setting('diagnostics')?' | textures '+this.profileNames[this.profile]+' | layers '+this.client.layers.size+' | signals '+Object.keys(input).join(','):'';
         this.status('Living Machine / '+state.mode.toUpperCase()+' / '+state.status+(this.coexistenceWarning?' / '+this.coexistenceWarning:'')+extra);
     }
 }
